@@ -877,6 +877,34 @@ button:hover {
 }
 
 
+
+
+
+#closeLogin {
+    position: fixed;        /* full screen relative */
+    top: 20px;              /* distance from top edge */
+    right: 20px;            /* distance from right edge */
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background-color: #e53935;
+    color: #fff;
+    border: none;
+    font-size: 22px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 10000;         /* stay above popup */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    transition: background 0.2s ease;
+  }
+  #closeLogin:hover {
+    background-color: #b71c1c;
+  }
+
+
 </style>   
 </head>
 <!-- 🔘 Top Right Login Button -->
@@ -895,7 +923,7 @@ button:hover {
       <button id="loginSubmit" style="width:90%;background:#007bff;color:#fff;padding:10px;border:none;border-radius:8px;cursor:pointer;">Login</button><br><br>
       <a href="#" id="forgotPassword" style="color:#00bfff;text-decoration:none;">Forgot Password?</a><br><br>
       <button id="googleLogin" style="width:90%;background:#db4437;color:#fff;padding:10px;border:none;border-radius:8px;cursor:pointer;">Sign in with Google</button><br><br>
-      <button id="closeLogin" style="background:#444;color:#fff;padding:8px 20px;border:none;border-radius:8px;cursor:pointer;">Close</button>
+      <button id="closeLogin">&times;</button>
     </div>
   </div>
   
@@ -2481,6 +2509,19 @@ scrollDownButton.addEventListener("click", () => {
 
 
             // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+            const firebaseConfig = {
+  apiKey: "AIzaSyDzaAqT7NRAyQhTNDh8GsMKlTKNmttzIWo",
+  authDomain: "work-report-fe3da.firebaseapp.com",
+  projectId: "work-report-fe3da",
+  storageBucket: "work-report-fe3da.appspot.com", // ✅ Corrected line
+  messagingSenderId: "879340317679",
+  appId: "1:879340317679:web:a28e2d3906bca3e927a41a",
+  measurementId: "G-ZR8RGLKB77"
+};
+
+const app = firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
   
 
@@ -2648,81 +2689,39 @@ document.getElementById("logoutBtn").addEventListener("click", () => {
 
 
 
-
-
-
-
-const firebaseConfig = {
-    apiKey: "AIzaSyDzaAqT7NRAyQhTNDh8GsMKlTKNmttzIWo",
-  authDomain: "work-report-fe3da.firebaseapp.com",
-  projectId: "work-report-fe3da",
-  storageBucket: "work-report-fe3da.appspot.com", // ✅ Corrected line
-  messagingSenderId: "879340317679",
-  appId: "1:879340317679:web:a28e2d3906bca3e927a41a",
-  measurementId: "G-ZR8RGLKB77"
-  };
-  firebase.initializeApp(firebaseConfig);
-
+document.addEventListener("DOMContentLoaded", function(){
   const auth = firebase.auth();
-  const db = firebase.database();
+  const forgotLink = document.getElementById("forgotPassword"); // your link/button id
+  
+  if(forgotLink){
+    forgotLink.addEventListener("click", async (e)=>{
+      e.preventDefault();
 
-  // Device-specific session ID
-  function getDeviceId() {
-    let id = localStorage.getItem('deviceId');
-    if (!id) {
-      id = 'd-' + Math.random().toString(36).substr(2, 9);
-      localStorage.setItem('deviceId', id);
-    }
-    return id;
-  }
-  const DEVICE_ID = getDeviceId();
+      const emailInput = document.getElementById("email");
+      const email = emailInput.value.trim();
 
-  // Login handler
-  document.getElementById('loginSubmit').addEventListener('click', async () => {
-    const email = document.getElementById('email').value.trim();
-    const password = document.getElementById('password').value.trim();
-    try {
-      const userCredential = await auth.signInWithEmailAndPassword(email, password);
-      const user = userCredential.user;
+      if(!email){
+        alert("⚠️ Please enter your email first.");
+        return;
+      }
 
-      // Device session entry
-      await db.ref(`sessions/${user.uid}/${DEVICE_ID}`).set({
-        deviceId: DEVICE_ID,
-        createdAt: firebase.database.ServerValue.TIMESTAMP
-      });
-
-      // Watch realtime login state
-      db.ref(`sessions/${user.uid}`).on('value', snapshot => {
-        const activeDevices = snapshot.val();
-        if (activeDevices && !activeDevices[DEVICE_ID]) {
-          auth.signOut();
-          localStorage.clear();
-          alert("You have been logged out from another device.");
+      try {
+        await auth.sendPasswordResetEmail(email);
+        alert("✅ Password reset email sent successfully! Please check your inbox.");
+      } catch(err){
+        if (err.code === "auth/user-not-found") {
+          alert("❌ No user found with this email.");
+        } else if (err.code === "auth/invalid-email") {
+          alert("⚠️ Invalid email format.");
+        } else {
+          alert("❌ Error: " + err.message);
         }
-      });
+      }
+    });
+  }
+});
 
-      alert("Login successful!");
-      document.getElementById('loginModal').style.display = 'none';
-      document.getElementById('logoutBtn').style.display = 'inline-block';
-      document.getElementById('openLogin').style.display = 'none';
 
-    } catch (error) {
-      alert("Login failed: " + error.message);
-    }
-  });
-
-  // Logout (only this device)
-  document.getElementById('logoutBtn').addEventListener('click', async () => {
-    const user = auth.currentUser;
-    if (user) {
-      await db.ref(`sessions/${user.uid}/${DEVICE_ID}`).remove();
-      await auth.signOut();
-      localStorage.clear();
-      alert("Logged out!");
-      document.getElementById('logoutBtn').style.display = 'none';
-      document.getElementById('openLogin').style.display = 'inline-block';
-    }
-  });
 
         
     </script>
