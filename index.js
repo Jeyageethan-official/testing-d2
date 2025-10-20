@@ -1,28 +1,32 @@
-// This file is loaded as a module. It will define the AI function 
-// and attach it to the window object so the main script in index.html can call it.
+/**
+ * Import function triggers from their respective submodules:
+ *
+ * const {onCall} = require("firebase-functions/v2/https");
+ * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
+ *
+ * See a full list of supported triggers at https://firebase.google.com/docs/functions
+ */
 
-// Since the AI logic is now on a secure backend (Firebase Cloud Function),
-// we no longer need the GoogleGenAI library on the frontend.
+const {setGlobalOptions} = require("firebase-functions");
+const {onRequest} = require("firebase-functions/https");
+const logger = require("firebase-functions/logger");
 
-// This function calls our secure backend function.
-async function generateProfessionalMessage(userInput) {
-  try {
-    // Get a reference to the callable function
-    const getProfessionalMessage = firebase.functions().httpsCallable('getProfessionalMessage');
-    
-    // Call the function with the user's input text
-    const result = await getProfessionalMessage({ text: userInput });
+// For cost control, you can set the maximum number of containers that can be
+// running at the same time. This helps mitigate the impact of unexpected
+// traffic spikes by instead downgrading performance. This limit is a
+// per-function limit. You can override the limit for each function using the
+// `maxInstances` option in the function's options, e.g.
+// `onRequest({ maxInstances: 5 }, (req, res) => { ... })`.
+// NOTE: setGlobalOptions does not apply to functions using the v1 API. V1
+// functions should each use functions.runWith({ maxInstances: 10 }) instead.
+// In the v1 API, each function can only serve one request per container, so
+// this will be the maximum concurrent request count.
+setGlobalOptions({ maxInstances: 10 });
 
-    // The result from the cloud function is in result.data
-    return result.data;
+// Create and deploy your first functions
+// https://firebase.google.com/docs/functions/get-started
 
-  } catch (error) {
-    console.error("Error calling getProfessionalMessage cloud function:", error);
-    // Provide a user-friendly error message
-    throw new Error("The AI assistant could not be reached. Please try again later.");
-  }
-}
-
-// Attach the function to the window object to make it globally accessible
-// from the script in index.html.
-window.generateProfessionalMessage = generateProfessionalMessage;
+// exports.helloWorld = onRequest((request, response) => {
+//   logger.info("Hello logs!", {structuredData: true});
+//   response.send("Hello from Firebase!");
+// });
