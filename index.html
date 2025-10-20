@@ -237,16 +237,7 @@
         }
     </style>
 <link rel="stylesheet" href="/index.css">
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "firebase/": "https://aistudiocdn.com/firebase@^12.4.0/"
-  }
-}
-</script>
+
 </head>
 <body class="bg-gray-50 dark:bg-gray-950">
 
@@ -1063,37 +1054,9 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
         openModal(createModal('AI Professional Message Assistant', content));
-        
-        document.getElementById('generate-ai-message-btn').addEventListener('click', async () => {
-            const inputEl = document.getElementById('ai-input');
-            const outputContainer = document.getElementById('ai-output-container');
-            const outputEl = document.getElementById('ai-output');
-            const spinner = document.getElementById('ai-spinner');
-            const button = document.getElementById('generate-ai-message-btn');
-            
-            const userInput = inputEl.value.trim();
-            if (!userInput) {
-                alert('Please enter a message.');
-                return;
-            }
 
-            spinner.classList.remove('hidden');
-            button.disabled = true;
-
-            try {
-                // This function is defined in index.js and attached to window
-                const result = await window.generateProfessionalMessage(userInput);
-                outputEl.textContent = result;
-                outputContainer.classList.remove('hidden');
-            } catch (error) {
-                console.error("Cloud Function error:", error);
-                outputEl.textContent = error.message || 'Sorry, an error occurred. Please try again.';
-                outputContainer.classList.remove('hidden');
-            } finally {
-                spinner.classList.add('hidden');
-                button.disabled = false;
-            }
-        });
+        // The event listener for the generate button is now handled in index.js
+        // to avoid the scoping issue.
 
         document.querySelector('#modal-root').addEventListener('click', (e) => {
             const copyBtn = e.target.closest('#copy-ai-output-btn');
@@ -1304,6 +1267,5 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 <script type="module" src="/index.js"></script>
-<script type="module" src="/index.tsx"></script>
 </body>
 </html>
