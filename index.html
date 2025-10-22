@@ -457,6 +457,69 @@
             margin: 0;
             padding: 0; /* Let the dashboard content add padding */
         }
+
+        /* Sidebar Menu */
+        .sidebar-backdrop {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 45;
+            transition: opacity 0.3s ease-out;
+            opacity: 0;
+        }
+        .sidebar-menu {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            right: 0;
+            width: 100%;
+            max-width: 320px;
+            background-color: white;
+            z-index: 50;
+            box-shadow: -10px 0 25px rgba(0,0,0,0.1);
+            transform: translateX(100%);
+            transition: transform 0.3s ease-in-out;
+            display: flex;
+            flex-direction: column;
+        }
+        html.dark .sidebar-menu {
+            background-color: #111827; /* gray-900 */
+        }
+        .sidebar-menu.open {
+            transform: translateX(0);
+        }
+        .sidebar-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e5e7eb; /* gray-200 */
+        }
+        html.dark .sidebar-header {
+            border-bottom-color: #374151; /* gray-700 */
+        }
+        .sidebar-content {
+            padding: 1rem;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            color: #374151; /* gray-700 */
+        }
+        html.dark .sidebar-item {
+            color: #d1d5db; /* gray-300 */
+        }
+        .sidebar-item:hover {
+            background-color: #f3f4f6; /* gray-100 */
+        }
+        html.dark .sidebar-item:hover {
+            background-color: #1f2937; /* gray-800 */
+        }
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-950">
@@ -514,16 +577,14 @@
                 </div>
             </div>
             <div id="dashboard-auth-area" class="relative">
-                <!-- User menu will be rendered here by JS -->
+                <!-- User menu and sidebar button will be rendered here by JS -->
             </div>
         </nav>
         
         <!-- Main Content (houses the original app) -->
         <main id="dashboard-content" class="p-4 sm:p-6 lg:p-8">
             <div id="app-container" class="relative text-gray-800 dark:text-gray-200 opacity-0 transition-opacity duration-500">
-                <!-- Auth Area IS GONE, moved to nav -->
-                
-                <!-- Header will be rendered here -->
+                <!-- Header (now empty, content moved to sidebar) -->
                 <header id="header-container"></header>
 
                 <main class="mt-8">
@@ -546,6 +607,9 @@
     </div>
 
 
+    <!-- Sidebar Portal -->
+    <div id="sidebar-root"></div>
+    
     <!-- Modals Portal -->
     <div id="modal-root"></div>
 
@@ -577,18 +641,12 @@
 // ===================================================================================
 
 const applyTheme = (theme) => {
-    const sunIcon = document.getElementById('theme-icon-sun');
-    const moonIcon = document.getElementById('theme-icon-moon');
     if (theme === 'dark') {
         document.documentElement.classList.add('dark');
         localStorage.setItem('theme', 'dark');
-        sunIcon?.classList.remove('hidden');
-        moonIcon?.classList.add('hidden');
     } else {
         document.documentElement.classList.remove('dark');
         localStorage.setItem('theme', 'light');
-        sunIcon?.classList.add('hidden');
-        moonIcon?.classList.remove('hidden');
     }
 }
 
@@ -628,6 +686,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const daysContainer = document.getElementById('daysContainer');
     const summaryContainer = document.getElementById('summary-container');
     const modalRoot = document.getElementById('modal-root');
+    const sidebarRoot = document.getElementById('sidebar-root');
     const loadingSpinner = document.getElementById('loading-spinner');
     const appContainer = document.getElementById('app-container');
     const scrollUpButton = document.getElementById('scrollUpButton');
@@ -654,7 +713,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return (outMinutes - inMinutes) / 60;
     };
 
-    // MODAL RENDERING & MANAGEMENT
+    // MODAL & SIDEBAR MANAGEMENT
     const openModal = (modalHTML) => {
         modalRoot.innerHTML = modalHTML;
         // Attach close listeners to all elements with data-dismiss="modal"
@@ -665,6 +724,80 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const closeModal = () => {
         modalRoot.innerHTML = '';
+    };
+
+    const closeSidebar = () => {
+        const sidebarMenu = sidebarRoot.querySelector('.sidebar-menu');
+        const backdrop = sidebarRoot.querySelector('.sidebar-backdrop');
+        
+        if (sidebarMenu) sidebarMenu.classList.remove('open');
+        if (backdrop) backdrop.style.opacity = '0';
+
+        document.body.style.overflow = '';
+        
+        setTimeout(() => {
+            sidebarRoot.innerHTML = '';
+        }, 300); // Match CSS transition duration
+    };
+
+    const openSidebar = () => {
+        const isDarkMode = document.documentElement.classList.contains('dark');
+        const themeIcon = isDarkMode 
+            ? `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>` 
+            : `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+        const themeText = isDarkMode ? 'Light Mode' : 'Dark Mode';
+
+        sidebarRoot.innerHTML = `
+            <div class="sidebar-backdrop"></div>
+            <div class="sidebar-menu">
+                <div class="sidebar-header flex justify-between items-center">
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white">Menu</h2>
+                    <button id="sidebar-close-btn" class="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                <div class="sidebar-content">
+                    <nav class="flex flex-col gap-2">
+                        <a id="sidebar-ai-btn" class="sidebar-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/></svg><span>AI Assistant</span></a>
+                        <a id="sidebar-month-picker-btn" class="sidebar-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path><path d="M8 18h.01"></path><path d="M12 18h.01"></path><path d="M16 18h.01"></path></svg><span>Select Month</span></a>
+                        <a id="sidebar-date-picker-btn" class="sidebar-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><span>Go to Date</span></a>
+                        <a id="sidebar-reminder-btn" class="sidebar-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span>Reminders</span></a>
+                        <a id="sidebar-share-btn" class="sidebar-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg><span>Share & Export</span></a>
+                        <div class="my-2 border-t border-gray-200 dark:border-gray-700"></div>
+                        <a id="sidebar-theme-toggle-btn" class="sidebar-item">${themeIcon}<span>${themeText}</span></a>
+                    </nav>
+                </div>
+            </div>
+        `;
+
+        document.body.style.overflow = 'hidden';
+
+        // Add listeners after rendering
+        setTimeout(() => {
+            const sidebarMenu = sidebarRoot.querySelector('.sidebar-menu');
+            const backdrop = sidebarRoot.querySelector('.sidebar-backdrop');
+            if (sidebarMenu) sidebarMenu.classList.add('open');
+            if (backdrop) backdrop.style.opacity = '1';
+            
+            backdrop.addEventListener('click', closeSidebar);
+            sidebarRoot.querySelector('#sidebar-close-btn').addEventListener('click', closeSidebar);
+
+            sidebarRoot.querySelector('#sidebar-ai-btn').addEventListener('click', () => { showAiModal(); closeSidebar(); });
+            sidebarRoot.querySelector('#sidebar-month-picker-btn').addEventListener('click', () => { showMonthPickerModal(); closeSidebar(); });
+            sidebarRoot.querySelector('#sidebar-date-picker-btn').addEventListener('click', () => { showDatePickerModal(); closeSidebar(); });
+            sidebarRoot.querySelector('#sidebar-reminder-btn').addEventListener('click', () => { showReminderModal(); closeSidebar(); });
+            sidebarRoot.querySelector('#sidebar-share-btn').addEventListener('click', () => { showShareModal(); closeSidebar(); });
+            
+            sidebarRoot.querySelector('#sidebar-theme-toggle-btn').addEventListener('click', () => {
+                handleThemeToggle();
+                const newIsDarkMode = document.documentElement.classList.contains('dark');
+                const newIcon = newIsDarkMode 
+                    ? `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>` 
+                    : `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+                const newText = newIsDarkMode ? 'Light Mode' : 'Dark Mode';
+                sidebarRoot.querySelector('#sidebar-theme-toggle-btn').innerHTML = `${newIcon}<span>${newText}</span>`;
+            });
+        }, 10); // Small delay to allow initial render for transition
     };
 
     const createModal = (title, content, id = '') => {
@@ -692,9 +825,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderDashboardNav = (user) => {
         const userInitial = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
         dashboardAuthArea.innerHTML = `
-            <button id="user-menu-btn" class="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold text-lg">
-                ${userInitial}
-            </button>
+            <div class="flex items-center gap-4">
+                <button id="sidebar-open-btn" title="Open Menu" class="p-2 text-gray-600 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                </button>
+                <div class="w-px h-6 bg-gray-200 dark:bg-gray-700 hidden sm:block"></div>
+                <button id="user-menu-btn" class="relative w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold text-lg">
+                    ${userInitial}
+                </button>
+            </div>
             <div id="user-menu-dropdown" class="hidden">
                 <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                     <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">${user.displayName || 'User'}</p>
@@ -717,33 +856,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         document.addEventListener('click', () => dropdown.classList.add('hidden'));
         document.getElementById('logout-btn').addEventListener('click', showLogoutConfirmationModal);
+        document.getElementById('sidebar-open-btn').addEventListener('click', openSidebar);
     }
 
     const renderHeader = () => {
-        const isDarkMode = document.documentElement.classList.contains('dark');
-
-        headerContainer.innerHTML = `
-            <div class="flex flex-col sm:flex-row justify-end items-center gap-4">
-                <div class="flex items-center gap-2 bg-white dark:bg-gray-900 p-2 rounded-full border border-gray-200 dark:border-gray-800 shadow-sm">
-                    <button id="ai-assistant-btn" title="AI Assistant" class="p-2 text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-800 rounded-full transition-colors ai-btn-pulse">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/></svg>
-                    </button>
-                    <button id="month-picker-btn" title="Select Month" class="p-2 text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-800 rounded-full transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path><path d="M8 18h.01"></path><path d="M12 18h.01"></path><path d="M16 18h.01"></path></svg>
-                    </button>
-                    <button id="date-picker-btn" title="Go to Date" class="p-2 text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-800 rounded-full transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    </button>
-                    <button id="theme-toggle-btn" title="Toggle Theme" class="p-2 text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-800 rounded-full transition-colors">
-                        <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 ${isDarkMode ? '' : 'hidden'}"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-                        <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 ${isDarkMode ? 'hidden' : ''}"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-                    </button>
-                    <button id="reminder-btn" title="Reminders" class="p-2 text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-800 rounded-full transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button>
-                    <button id="share-btn" title="Share or Export" class="p-2 text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-800 rounded-full transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
-                </div>
-            </div>
-        `;
-        addHeaderEventListeners();
+        // This function is now empty as all actions have been moved to the sidebar.
+        headerContainer.innerHTML = ``;
     };
     
     const createDayCardHTML = (day) => {
@@ -1005,15 +1123,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
         applyTheme(currentTheme === 'light' ? 'dark' : 'light');
     }
-
-    const addHeaderEventListeners = () => {
-        document.getElementById('ai-assistant-btn').addEventListener('click', showAiModal);
-        document.getElementById('month-picker-btn').addEventListener('click', showMonthPickerModal);
-        document.getElementById('date-picker-btn').addEventListener('click', showDatePickerModal);
-        document.getElementById('theme-toggle-btn').addEventListener('click', handleThemeToggle);
-        document.getElementById('reminder-btn').addEventListener('click', showReminderModal);
-        document.getElementById('share-btn').addEventListener('click', showShareModal);
-    };
 
     const addSingleDayCardEventListeners = (dayBox) => {
         const day = dayBox.dataset.day;
@@ -1849,7 +1958,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // MAIN RENDER/INITIALIZATION FUNCTIONS
     const renderAll = () => {
-        //renderAuthArea(); // Replaced by Dashboard Nav
         renderHeader();
         renderDays();
         renderSummary();
