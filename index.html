@@ -21,6 +21,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
+    <!-- New Chart & Map Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+
     <style>
         :root {
             --bg-light: #f8f9fa; /* A clean, near-white */
@@ -425,11 +431,11 @@
             border-bottom-color: #374151; /* gray-700 */
         }
         .nav-link.active {
-            background-color: #e0e7ff; /* indigo-100 */
-            color: #3730a3; /* indigo-800 */
+            background-color: #4338ca; /* indigo-700 */
+            color: #ffffff;
         }
         html.dark .nav-link.active {
-            background-color: #3730a3; /* indigo-800 */
+            background-color: #4f46e5; /* indigo-600 */
             color: #e0e7ff; /* indigo-100 */
         }
         #user-menu-dropdown {
@@ -450,6 +456,7 @@
         }
         #dashboard-content {
             flex-grow: 1;
+            transition: opacity 0.3s ease-in-out;
         }
         /* Override app-container styles for dashboard integration */
         #app-container {
@@ -520,6 +527,58 @@
         html.dark .sidebar-item:hover {
             background-color: #1f2937; /* gray-800 */
         }
+
+        /* ======== DASHBOARD WIDGETS ======== */
+        .widget-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 1.5rem; /* 24px */
+            padding: 1.5rem; /* 24px */
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
+            transition: all 0.3s ease;
+        }
+        .widget-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 36px 0 rgba(31, 38, 135, 0.12);
+        }
+        html.dark .widget-card {
+             background: rgba(31, 41, 55, 0.6); /* gray-800 */
+             border-color: rgba(255, 255, 255, 0.1);
+             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+        }
+        html.dark .widget-card:hover {
+             box-shadow: 0 12px 36px 0 rgba(0, 0, 0, 0.25);
+        }
+
+        /* Heatmap Styles */
+        .heatmap-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .heatmap-cell { width: 100%; aspect-ratio: 1/1; border-radius: 4px; position: relative; }
+        .heatmap-cell[data-tooltip]:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1f2937;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 10;
+        }
+        
+        /* Leaflet Map Styles */
+        #location-map {
+            height: 300px;
+            border-radius: 1rem; /* 16px */
+            z-index: 1;
+        }
+        html.dark .leaflet-tile-pane {
+            filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
+        }
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-950">
@@ -572,8 +631,8 @@
                     <span>Work Report</span>
                 </div>
                 <!-- Navigation Links -->
-                <div class="hidden md:flex items-center gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
-                    <a href="#" class="nav-link active px-4 py-1.5 text-sm font-semibold rounded-md transition-colors">Report</a>
+                <div id="main-nav-links" class="hidden md:flex items-center gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+                    <!-- Nav links are rendered here by JS -->
                 </div>
             </div>
             <div id="dashboard-auth-area" class="relative">
@@ -581,18 +640,33 @@
             </div>
         </nav>
         
-        <!-- Main Content (houses the original app) -->
+        <!-- Main Content -->
         <main id="dashboard-content" class="p-4 sm:p-6 lg:p-8">
-            <div id="app-container" class="relative text-gray-800 dark:text-gray-200 opacity-0 transition-opacity duration-500">
-                <!-- Header (now empty, content moved to sidebar) -->
-                <header id="header-container"></header>
+            <!-- Report View -->
+            <div id="report-view">
+                 <button id="back-to-dashboard-btn" class="mb-4 flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    Back to Dashboard
+                </button>
+                <div id="app-container" class="relative text-gray-800 dark:text-gray-200 opacity-0 transition-opacity duration-500">
+                    <main class="mt-2">
+                        <!-- Day cards will be rendered here -->
+                        <div id="daysContainer" class="space-y-8"></div>
+                        <!-- Summary will be rendered here -->
+                        <div id="summary-container"></div>
+                    </main>
+                </div>
+            </div>
 
-                <main class="mt-8">
-                    <!-- Day cards will be rendered here -->
-                    <div id="daysContainer" class="space-y-8"></div>
-                    <!-- Summary will be rendered here -->
-                    <div id="summary-container"></div>
-                </main>
+            <!-- Dashboard Widgets View -->
+            <div id="dashboard-view" class="hidden">
+                 <div class="mb-6">
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+                    <p class="text-gray-500 dark:text-gray-400 mt-1">A quick overview of your monthly activity.</p>
+                </div>
+                <div id="dashboard-widgets" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <!-- Widgets will be rendered here by JS -->
+                </div>
             </div>
         </main>
 
@@ -674,6 +748,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let workData = {};
     let reminders = [];
     let isInitialLoad = true;
+    let currentView = 'report'; // 'report' or 'dashboard'
     
     const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     const reminderCategories = ['Wedding', 'Nobility Ceremony', 'Birthday', 'House Warming Ceremony', 'Other'];
@@ -682,7 +757,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const signinPage = document.getElementById('signin-page');
     const dashboardPage = document.getElementById('dashboard-page');
     const dashboardAuthArea = document.getElementById('dashboard-auth-area');
-    const headerContainer = document.getElementById('header-container');
+    const mainNavLinks = document.getElementById('main-nav-links');
+    const reportView = document.getElementById('report-view');
+    const dashboardView = document.getElementById('dashboard-view');
+    const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
+    
     const daysContainer = document.getElementById('daysContainer');
     const summaryContainer = document.getElementById('summary-container');
     const modalRoot = document.getElementById('modal-root');
@@ -824,6 +903,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // COMPONENT RENDERING (as HTML strings)
     const renderDashboardNav = (user) => {
         const userInitial = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
+        
+        mainNavLinks.innerHTML = `
+            <a href="#" class="nav-link" data-view="dashboard">Dashboard</a>
+            <a href="#" class="nav-link" data-view="report">Report</a>
+        `;
+        updateNavLinks();
+
         dashboardAuthArea.innerHTML = `
             <div class="flex items-center gap-4">
                 <button id="sidebar-open-btn" title="Open Menu" class="p-2 text-gray-600 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
@@ -857,13 +943,14 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('click', () => dropdown.classList.add('hidden'));
         document.getElementById('logout-btn').addEventListener('click', showLogoutConfirmationModal);
         document.getElementById('sidebar-open-btn').addEventListener('click', openSidebar);
+        mainNavLinks.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                switchView(e.target.dataset.view);
+            });
+        });
     }
 
-    const renderHeader = () => {
-        // This function is now empty as all actions have been moved to the sidebar.
-        headerContainer.innerHTML = ``;
-    };
-    
     const createDayCardHTML = (day) => {
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth();
@@ -959,49 +1046,55 @@ document.addEventListener('DOMContentLoaded', () => {
         daysContainer.innerHTML = Array.from({ length: daysInMonth }, (_, i) => createDayCardHTML(i + 1)).join('');
         addDayCardEventListeners();
     };
-
-    const renderSummary = () => {
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth();
+    
+    const getMonthlySummaryData = (year, month) => {
         const monthPrefix = `${year}-${month}`;
-
         let regularLeaves = 0, specialDays = 0, weekendLeaveDays = 0;
-        let weekendOtHours = 0, satSunOtHours = 0, poyaPublicOtHours = 0;
+        let weekdayOtHours = 0, satSunOtHours = 0, poyaPublicOtHours = 0;
+        let workingDays = 0;
 
         Object.keys(workData).forEach(key => {
             if (key.startsWith(monthPrefix)) {
                 const data = workData[key];
                 const day = parseInt(key.split('-')[2], 10);
-                const weekend = isWeekend(year, month, day);
+                const isDayWeekend = isWeekend(year, month, day);
                 const isSpecial = data.specialDays === "Poya Day" || data.specialDays === "Public Holiday";
                 const workingHours = calculateHoursDifference(data.inTime, data.outTime);
 
                 if (workingHours > 0) {
+                     workingDays++;
                      if (isSpecial) poyaPublicOtHours += workingHours;
-                     else if (weekend) satSunOtHours += workingHours;
-                     else if (workingHours > 9) weekendOtHours += workingHours - 9;
+                     else if (isDayWeekend) satSunOtHours += workingHours;
+                     else if (workingHours > 9) weekdayOtHours += workingHours - 9;
                 }
                
-                if (data.leaveReason === "Own Leave" || (data.leaveReason === "Custom Reason" && !weekend && !isSpecial)) regularLeaves++;
-                else if (data.leaveReason === "Poya Day" || data.leaveReason === "Public Holiday" || (data.leaveReason === "Custom Reason" && (weekend || isSpecial))) specialDays++;
+                if (data.leaveReason === "Own Leave" || (data.leaveReason === "Custom Reason" && !isDayWeekend && !isSpecial)) regularLeaves++;
+                else if (data.leaveReason === "Poya Day" || data.leaveReason === "Public Holiday" || (data.leaveReason === "Custom Reason" && (isDayWeekend || isSpecial))) specialDays++;
                 
-                if (weekend && data.leaveReason === "Normal Leave Day") weekendLeaveDays++;
+                if (isDayWeekend && data.leaveReason === "Normal Leave Day") weekendLeaveDays++;
             }
         });
-        const totalOtHours = weekendOtHours + satSunOtHours + poyaPublicOtHours;
+        const totalOtHours = weekdayOtHours + satSunOtHours + poyaPublicOtHours;
+        const totalLeaves = regularLeaves + specialDays + weekendLeaveDays;
 
+        return { regularLeaves, specialDays, weekendLeaveDays, weekdayOtHours, satSunOtHours, poyaPublicOtHours, totalOtHours, totalLeaves, workingDays };
+    };
+
+    const renderSummary = () => {
+        const summaryData = getMonthlySummaryData(currentDate.getFullYear(), currentDate.getMonth());
+        
         summaryContainer.innerHTML = `
             <div class="mt-8 p-6 bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-800/50">
                 <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Monthly Summary</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-gray-600 dark:text-gray-300">
-                    <p>Leave Days (Regular): <span class="font-semibold text-gray-800 dark:text-gray-100">${regularLeaves}</span></p>
-                    <p>Leave Days (Poya/Public): <span class="font-semibold text-gray-800 dark:text-gray-100">${specialDays}</span></p>
-                    <p>Leave Days (Weekend): <span class="font-semibold text-gray-800 dark:text-gray-100">${weekendLeaveDays}</span></p>
+                    <p>Leave Days (Regular): <span class="font-semibold text-gray-800 dark:text-gray-100">${summaryData.regularLeaves}</span></p>
+                    <p>Leave Days (Poya/Public): <span class="font-semibold text-gray-800 dark:text-gray-100">${summaryData.specialDays}</span></p>
+                    <p>Leave Days (Weekend): <span class="font-semibold text-gray-800 dark:text-gray-100">${summaryData.weekendLeaveDays}</span></p>
                     <div class="md:col-span-2 my-2 border-t border-gray-200 dark:border-gray-800"></div>
-                    <p>Weekday OT Hours: <span class="font-semibold text-gray-800 dark:text-gray-100">${weekendOtHours.toFixed(2)}</span> hours</p>
-                    <p>Weekend OT Hours: <span class="font-semibold text-gray-800 dark:text-gray-100">${satSunOtHours.toFixed(2)}</span> hours</p>
-                    <p>Poya/Public OT Hours: <span class="font-semibold text-gray-800 dark:text-gray-100">${poyaPublicOtHours.toFixed(2)}</span> hours</p>
-                    <p class="md:col-span-2 text-lg font-bold text-blue-600 dark:text-blue-400">Total OT Hours: <span id="totalOtHours">${totalOtHours.toFixed(2)}</span> hours</p>
+                    <p>Weekday OT Hours: <span class="font-semibold text-gray-800 dark:text-gray-100">${summaryData.weekdayOtHours.toFixed(2)}</span> hours</p>
+                    <p>Weekend OT Hours: <span class="font-semibold text-gray-800 dark:text-gray-100">${summaryData.satSunOtHours.toFixed(2)}</span> hours</p>
+                    <p>Poya/Public OT Hours: <span class="font-semibold text-gray-800 dark:text-gray-100">${summaryData.poyaPublicOtHours.toFixed(2)}</span> hours</p>
+                    <p class="md:col-span-2 text-lg font-bold text-blue-600 dark:text-blue-400">Total OT Hours: <span id="totalOtHours">${summaryData.totalOtHours.toFixed(2)}</span> hours</p>
                 </div>
                 <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row gap-4">
                     <button id="backup-btn" class="w-full sm:w-auto flex-1 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-semibold px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-900 hover:bg-blue-100 dark:hover:bg-blue-950 transition">Backup Month Data</button>
@@ -1171,7 +1264,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const addSummaryEventListeners = () => {
         document.getElementById('clear-month-btn').addEventListener('click', handleClearMonthData);
-        document.getElementById('backup-btn').addEventListener('click', handleBackup);
+        document.getElementById('backup-btn').addEventListener('click', () => handleBackup(currentDate.getFullYear(), currentDate.getMonth()));
         document.getElementById('restore-file-input').addEventListener('change', handleRestore);
     };
 
@@ -1191,8 +1284,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    const handleBackup = () => {
-        const monthPrefix = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
+    const handleBackup = (year, month) => {
+        const monthPrefix = `${year}-${month}`;
         const monthData = Object.keys(workData)
             .filter(key => key.startsWith(monthPrefix))
             .reduce((obj, key) => {
@@ -1204,7 +1297,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const blob = new Blob([JSON.stringify(monthData, null, 2)], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `WorkData_${currentDate.getFullYear()}_${currentDate.getMonth() + 1}.json`;
+        a.download = `WorkData_${year}_${month + 1}.json`;
         a.click();
         URL.revokeObjectURL(a.href);
     };
@@ -1671,27 +1764,68 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const showShareModal = () => {
-        const totalOt = document.getElementById('totalOtHours')?.textContent || 'N/A';
-        const summaryText = `Work Report Summary for ${months[currentDate.getMonth()]} ${currentDate.getFullYear()}:\n- Total OT Hours: ${totalOt} hours.`;
+        const availableMonths = {};
+        Object.keys(workData).forEach(key => {
+            const [year, month] = key.split('-');
+            const monthKey = `${year}-${month}`;
+            if (!availableMonths[monthKey]) {
+                availableMonths[monthKey] = { year: parseInt(year), month: parseInt(month) };
+            }
+        });
+
+        const sortedMonths = Object.values(availableMonths).sort((a, b) => new Date(b.year, b.month) - new Date(a.year, a.month));
+
+        let monthListHTML = '';
+        if (sortedMonths.length > 0) {
+            monthListHTML = sortedMonths.map(({ year, month }) => `
+                <button data-year="${year}" data-month="${month}" class="month-export-btn w-full text-left p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-700/50 transition-colors">
+                    ${months[month]} ${year}
+                </button>
+            `).join('');
+        } else {
+            monthListHTML = `<p class="text-gray-500 text-center py-4">No data available to export.</p>`;
+        }
+
+        const content = `
+            <div class="space-y-2">
+                <p class="font-semibold text-gray-700 dark:text-gray-300 mb-2">Select a month to export:</p>
+                <div class="space-y-2 max-h-60 overflow-y-auto">
+                    ${monthListHTML}
+                </div>
+            </div>
+        `;
+        openModal(createModal('Select Month to Export', content));
         
+        document.querySelectorAll('.month-export-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const { year, month } = e.currentTarget.dataset;
+                showExportOptionsModal(parseInt(year), parseInt(month));
+            });
+        });
+    };
+
+    const showExportOptionsModal = (year, month) => {
+        const summaryData = getMonthlySummaryData(year, month);
+        const summaryText = `Work Report Summary for ${months[month]} ${year}:\n- Total OT Hours: ${summaryData.totalOtHours.toFixed(2)} hours.`;
+
         const content = `
             <div class="space-y-4">
-                <div class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border dark:border-gray-700">
-                    <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">Summary Preview</h3>
+                 <div class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border dark:border-gray-700">
+                    <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">Summary for ${months[month]} ${year}</h3>
                     <pre class="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">${summaryText}</pre>
                 </div>
                 <button id="copy-summary-btn" class="w-full px-5 py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-all bg-blue-600 text-white hover:bg-blue-700">Copy Summary as Text</button>
                 <button id="export-pdf-btn" class="w-full px-5 py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-all bg-white text-gray-800 border border-gray-300 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 dark:hover:bg-gray-700">Export Month Data as PDF</button>
             </div>
         `;
-        openModal(createModal('Share & Export', content));
+        openModal(createModal(`Export Options for ${months[month]} ${year}`, content));
 
         document.getElementById('copy-summary-btn').addEventListener('click', () => {
              navigator.clipboard.writeText(summaryText)
                 .then(() => alert('Summary copied to clipboard!'))
                 .catch(() => alert('Failed to copy summary.'));
         });
-        document.getElementById('export-pdf-btn').addEventListener('click', showExportPreview);
+        document.getElementById('export-pdf-btn').addEventListener('click', () => showExportPreview(year, month));
     };
 
      const showAiModal = () => {
@@ -1839,9 +1973,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    const showExportPreview = () => {
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth();
+    const showExportPreview = (year, month) => {
         const daysInMonth = getDaysInMonth(year, month);
 
         const tableRows = Array.from({ length: daysInMonth }, (_, i) => {
@@ -1949,16 +2081,284 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const credential = new PasswordCredential({ id: email, password: password, name: email });
                 await navigator.credentials.store(credential);
-            } catch (err) {
+            } catch (err) => {
                 console.error('Error storing credential:', err);
             }
         }
+    };
+    
+    // =============================================================================
+    // NEW DASHBOARD FUNCTIONS
+    // =============================================================================
+    const renderDashboard = () => {
+        const widgetsContainer = document.getElementById('dashboard-widgets');
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+
+        const summary = getMonthlySummaryData(year, month);
+        
+        widgetsContainer.innerHTML = `
+            <!-- Summary Cards -->
+            <div class="widget-card flex flex-col justify-between">
+                <div>
+                    <h3 class="font-bold text-gray-800 dark:text-white text-lg">Total Leaves</h3>
+                    <p class="text-4xl font-extrabold text-blue-600 dark:text-blue-400 mt-2">${summary.totalLeaves}</p>
+                </div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-4">For ${months[month]}</p>
+            </div>
+            <div class="widget-card flex flex-col justify-between">
+                <div>
+                    <h3 class="font-bold text-gray-800 dark:text-white text-lg">Total OT Hours</h3>
+                    <p class="text-4xl font-extrabold text-green-600 dark:text-green-400 mt-2">${summary.totalOtHours.toFixed(2)}</p>
+                </div>
+                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-4">For ${months[month]}</p>
+            </div>
+            <div class="widget-card flex flex-col justify-between">
+                <h3 class="font-bold text-gray-800 dark:text-white text-lg mb-2">View Full Report</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Dive into the detailed daily breakdown of your activities.</p>
+                <button id="view-full-report-btn" class="mt-auto w-full bg-blue-600 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-blue-700 transition-all">View Report</button>
+            </div>
+            
+            <!-- Heatmap -->
+            <div class="widget-card lg:col-span-2">
+                <h3 class="font-bold text-gray-800 dark:text-white text-lg mb-4">Attendance Heatmap</h3>
+                <div id="heatmap-container"></div>
+            </div>
+
+            <!-- Smart Analyzer -->
+            <div class="widget-card bg-gradient-to-br from-purple-50 to-indigo-100 dark:from-gray-800 dark:to-slate-900">
+                <h3 class="font-bold text-gray-800 dark:text-white text-lg mb-4">Smart Leave Pattern Analyzer</h3>
+                <div id="leave-analyzer-container" class="text-gray-700 dark:text-gray-300 space-y-2"></div>
+            </div>
+
+            <!-- Upcoming Reminders -->
+            <div class="widget-card">
+                <h3 class="font-bold text-gray-800 dark:text-white text-lg mb-4">Upcoming Events (Next 7 Days)</h3>
+                <div id="upcoming-reminders-container" class="space-y-3"></div>
+            </div>
+
+            <!-- Monthly Comparison -->
+            <div class="widget-card lg:col-span-2">
+                 <h3 class="font-bold text-gray-800 dark:text-white text-lg mb-4">This Month vs Last Month</h3>
+                 <canvas id="monthly-comparison-chart"></canvas>
+            </div>
+             
+             <!-- Work Location History -->
+            <div class="widget-card xl:col-span-3">
+                 <h3 class="font-bold text-gray-800 dark:text-white text-lg mb-4">Work Location History</h3>
+                 <div id="location-map"></div>
+            </div>
+        `;
+
+        renderAttendanceHeatmap(year, month);
+        renderLeavePatternAnalyzer(year, month);
+        renderUpcomingReminders();
+        renderMonthlyComparisonChart(year, month);
+        
+        // Use a timeout to ensure the map container is in the DOM before initialization
+        setTimeout(() => renderLocationMap(year, month), 0);
+
+        document.getElementById('view-full-report-btn').addEventListener('click', () => switchView('report'));
+    };
+    
+    const renderAttendanceHeatmap = (year, month) => {
+        const container = document.getElementById('heatmap-container');
+        const daysInMonth = getDaysInMonth(year, month);
+        const firstDay = new Date(year, month, 1).getDay(); // 0=Sun, 1=Mon
+        const offset = (firstDay === 0) ? 6 : firstDay - 1; // Adjust to Mon-first week
+
+        let cells = '';
+        const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach(label => {
+            cells += `<div class="flex items-center justify-center text-xs font-bold text-gray-500 dark:text-gray-400">${label}</div>`;
+        });
+
+        for (let i = 0; i < offset; i++) {
+            cells += '<div></div>';
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateKey = `${year}-${month}-${day}`;
+            const dayData = workData[dateKey] || {};
+            let colorClass = 'bg-gray-200 dark:bg-gray-700/50';
+            let tooltip = `${months[month]} ${day}`;
+
+            if (dayData.leaveStatus === 'Yes') {
+                colorClass = 'bg-red-400 dark:bg-red-600';
+                tooltip += ` - Leave: ${dayData.leaveReason || 'N/A'}`;
+            } else if (calculateHoursDifference(dayData.inTime, dayData.outTime) > 0) {
+                 colorClass = 'bg-green-400 dark:bg-green-600';
+                 tooltip += ` - Present (${dayData.inTime} - ${dayData.outTime})`;
+            }
+            cells += `<div class="heatmap-cell ${colorClass}" data-tooltip="${tooltip}"></div>`;
+        }
+        container.innerHTML = `<div class="heatmap-grid">${cells}</div>`;
+    };
+
+    const renderLeavePatternAnalyzer = (year, month) => {
+        const container = document.getElementById('leave-analyzer-container');
+        const monthPrefix = `${year}-${month}`;
+        const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const leaveDays = {};
+
+        Object.keys(workData).forEach(key => {
+            if (key.startsWith(monthPrefix) && workData[key].leaveReason === "Own Leave") {
+                const day = parseInt(key.split('-')[2]);
+                const dayOfWeek = weekdays[new Date(year, month, day).getDay()];
+                leaveDays[dayOfWeek] = (leaveDays[dayOfWeek] || 0) + 1;
+            }
+        });
+        
+        let insightsHTML = '';
+        const insights = Object.entries(leaveDays);
+        if (insights.length > 0) {
+            insights.forEach(([day, count]) => {
+                insightsHTML += `<p>• You took <span class="font-bold">${count}</span> Own Leave${count > 1 ? 's' : ''} on <span class="font-bold">${day}s</span> this month.</p>`;
+            });
+        } else {
+            insightsHTML = '<p>No specific leave patterns detected for this month. Keep up the great work!</p>';
+        }
+        container.innerHTML = insightsHTML;
+    };
+
+    const renderUpcomingReminders = () => {
+        const container = document.getElementById('upcoming-reminders-container');
+        const now = new Date();
+        const sevenDaysLater = new Date();
+        sevenDaysLater.setDate(now.getDate() + 7);
+
+        const upcoming = reminders
+            .map(r => ({ ...r, dateObj: new Date(r.date) }))
+            .filter(r => r.dateObj >= now && r.dateObj <= sevenDaysLater)
+            .sort((a, b) => a.dateObj - b.dateObj);
+        
+        if (upcoming.length > 0) {
+            container.innerHTML = upcoming.map(r => `
+                <div class="p-2 bg-gray-100 dark:bg-gray-800 rounded-md">
+                    <p class="font-semibold text-sm text-gray-800 dark:text-gray-200">${r.category === 'Other' ? r.customDetails : r.category}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">${r.dateObj.toLocaleDateString()}</p>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = `<p class="text-sm text-center text-gray-500 dark:text-gray-400">No upcoming events.</p>`;
+        }
+    };
+    
+    let monthlyComparisonChartInstance = null;
+    const renderMonthlyComparisonChart = (year, month) => {
+        const ctx = document.getElementById('monthly-comparison-chart').getContext('2d');
+        
+        const thisMonthData = getMonthlySummaryData(year, month);
+        const lastMonthDate = new Date(year, month, 0); // Day 0 of current month gives last day of previous month
+        const lastMonthData = getMonthlySummaryData(lastMonthDate.getFullYear(), lastMonthDate.getMonth());
+        
+        if (monthlyComparisonChartInstance) {
+            monthlyComparisonChartInstance.destroy();
+        }
+
+        monthlyComparisonChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Total OT Hours', 'Total Leaves', 'Working Days'],
+                datasets: [
+                    {
+                        label: `Last Month (${months[lastMonthDate.getMonth()]})`,
+                        data: [lastMonthData.totalOtHours, lastMonthData.totalLeaves, lastMonthData.workingDays],
+                        backgroundColor: '#d1d5db', // gray-300
+                        borderColor: '#9ca3af', // gray-400
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    },
+                    {
+                        label: `This Month (${months[month]})`,
+                        data: [thisMonthData.totalOtHours, thisMonthData.totalLeaves, thisMonthData.workingDays],
+                        backgroundColor: '#3b82f6', // blue-500
+                        borderColor: '#2563eb', // blue-600
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    };
+    
+    let locationMapInstance = null;
+    const renderLocationMap = (year, month) => {
+        if (locationMapInstance) {
+            locationMapInstance.remove();
+            locationMapInstance = null;
+        }
+
+        const mapElement = document.getElementById('location-map');
+        if (!mapElement) return;
+
+        locationMapInstance = L.map('location-map').setView([7.8731, 80.7718], 8); // Center on Sri Lanka
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(locationMapInstance);
+
+        const monthPrefix = `${year}-${month}`;
+        const locations = {};
+        
+        // --- Hardcoded coordinates for demo ---
+        const locationCoordinates = {
+            'Office': [6.9271, 79.8612], // Colombo
+            'Home': [7.2906, 80.6337],   // Kandy
+            'Site A': [6.0535, 80.2210], // Galle
+        };
+
+        Object.keys(workData).forEach(key => {
+            if (key.startsWith(monthPrefix) && workData[key].workLocation) {
+                const loc = workData[key].workLocation;
+                if (!locations[loc]) locations[loc] = [];
+                locations[loc].push(key);
+            }
+        });
+        
+        Object.entries(locations).forEach(([locName, dates]) => {
+            if (locationCoordinates[locName]) {
+                const marker = L.marker(locationCoordinates[locName]).addTo(locationMapInstance);
+                marker.bindPopup(`<b>${locName}</b><br>Visited on: ${dates.map(d => new Date(d).getDate()).join(', ')}`);
+            }
+        });
+    };
+
+
+    // =============================================================================
+    // VIEW MANAGEMENT
+    // =============================================================================
+     const switchView = (view) => {
+        currentView = view;
+        const isReport = view === 'report';
+        
+        reportView.classList.toggle('hidden', !isReport);
+        dashboardView.classList.toggle('hidden', isReport);
+        
+        if (!isReport) {
+            renderDashboard(); // Re-render dashboard every time it's viewed
+        }
+        
+        updateNavLinks();
+    };
+
+    const updateNavLinks = () => {
+        mainNavLinks.querySelectorAll('.nav-link').forEach(link => {
+            link.classList.toggle('active', link.dataset.view === currentView);
+            // Simple styling for nav links
+            link.classList.add('px-4', 'py-1.5', 'text-sm', 'font-semibold', 'rounded-md', 'transition-colors');
+        });
     };
 
 
     // MAIN RENDER/INITIALIZATION FUNCTIONS
     const renderAll = () => {
-        renderHeader();
         renderDays();
         renderSummary();
     };
@@ -1988,6 +2388,8 @@ document.addEventListener('DOMContentLoaded', () => {
     scrollUpButton.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
     scrollDownButton.addEventListener('click', () => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }));
     floatingDatePickerBtn.addEventListener('click', showDatePickerModal);
+    backToDashboardBtn.addEventListener('click', () => switchView('dashboard'));
+
 
     const firebaseConfig = {
       apiKey: "AIzaSyDzaAqT7NRAyQhTNDh8GsMKlTKNmttzIWo",
@@ -2023,6 +2425,7 @@ document.addEventListener('DOMContentLoaded', () => {
             user = currentUser;
             dashboardPage.style.display = 'flex';
             signinPage.classList.add('hidden');
+            switchView('report'); // Default to report view on login
 
             renderDashboardNav(user);
 
