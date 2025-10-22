@@ -414,8 +414,7 @@
         /* Dashboard & Report Pages */
         #report-page, #dashboard-page {
             display: none;
-            flex-direction: column;
-            min-height: 100vh;
+            /* Switched to block for simpler layout management */
         }
         #main-nav {
             position: sticky;
@@ -525,11 +524,11 @@
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             border-radius: 1.25rem; /* rounded-2xl */
-            padding: 1rem; /* p-4 */
+            padding: 1.25rem; /* p-5 */
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.2);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
-            min-height: 220px;
+            min-height: 180px;
         }
         .widget-card:hover {
             transform: scale(1.02);
@@ -555,33 +554,12 @@
             transition: all 0.2s ease;
             position: relative;
         }
-        .heatmap-day:hover .heatmap-day-tooltip {
-            opacity: 1;
-            transform: translateY(-5px) scale(1);
-            visibility: visible;
-        }
         .heatmap-present { background-color: rgba(34, 197, 94, 0.7); }
-        .heatmap-leave { background-color: rgba(239, 68, 68, 0.7); }
-        .heatmap-half-day { background-color: rgba(251, 191, 36, 0.7); }
+        .heatmap-leave-own { background-color: rgba(239, 68, 68, 0.7); } /* Red */
+        .heatmap-leave-other { background-color: rgba(251, 191, 36, 0.7); } /* Yellow */
         .heatmap-weekend { background-color: #e5e7eb; }
         html.dark .heatmap-weekend { background-color: #374151; }
-        .heatmap-day-tooltip {
-            position: absolute;
-            bottom: 110%;
-            left: 50%;
-            transform: translateX(-50%) scale(0.95);
-            background-color: #111827;
-            color: white;
-            padding: 0.5rem 0.75rem;
-            border-radius: 0.5rem;
-            font-size: 0.75rem;
-            white-space: nowrap;
-            z-index: 10;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
+        
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-950">
@@ -616,8 +594,8 @@
         </div>
     </div>
     
-    <!-- Report Page -->
-    <div id="report-page">
+    <!-- Main Application Wrapper -->
+    <div id="app-wrapper">
         <!-- Top Navigation -->
         <nav id="main-nav" class="flex items-center justify-between">
             <div class="flex items-center gap-4">
@@ -631,27 +609,85 @@
                             <path d="M35 65 H 60" />
                         </g>
                     </svg>
-                    <span>Work Report</span>
-                </div>
-                 <div class="hidden md:flex items-center gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
-                    <button id="go-to-dashboard-btn" class="nav-link px-4 py-1.5 text-sm font-semibold rounded-md transition-colors">Dashboard</button>
+                    <span id="page-title">Work Report</span>
                 </div>
             </div>
             <div id="auth-area" class="relative">
                 <!-- User menu and sidebar button will be rendered here by JS -->
             </div>
         </nav>
-        
-        <!-- Main Content (Report View) -->
-        <main id="main-content" class="p-4 sm:p-6 lg:p-8">
-            <div id="app-container" class="relative text-gray-800 dark:text-gray-200 opacity-0 transition-opacity duration-500">
-                <header id="header-container"></header>
-                <main class="mt-8">
-                    <div id="daysContainer" class="space-y-8"></div>
-                    <div id="summary-container"></div>
-                </main>
+
+        <!-- Report Page -->
+        <div id="report-page">
+             <!-- BACK BUTTON NAVIGATION START -->
+            <div class="px-4 sm:px-6 lg:px-8 pt-6">
+                <button id="back-to-dashboard-btn" class="flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                    Back to Dashboard
+                </button>
             </div>
-        </main>
+            <!-- BACK BUTTON NAVIGATION END -->
+            <main id="main-content" class="p-4 sm:p-6 lg:p-8 pt-4">
+                <div id="app-container" class="relative text-gray-800 dark:text-gray-200 opacity-0 transition-opacity duration-500">
+                    <header id="header-container"></header>
+                    <main class="mt-8">
+                        <div id="daysContainer" class="space-y-8"></div>
+                        <div id="summary-container"></div>
+                    </main>
+                </div>
+            </main>
+        </div>
+        
+        <!-- Dashboard Page -->
+        <div id="dashboard-page" class="p-4 sm:p-6 lg:p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">📊 Dashboard</h2>
+                <button id="view-full-report-btn" class="bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition">View Full Report</button>
+            </div>
+    
+            <!-- DASHBOARD START -->
+            <div id="dashboard-widgets" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <!-- Widgets Grid -->
+                <div class="widget-card md:col-span-2 lg:col-span-3 xl:col-span-2">
+                    <h3 class="widget-title mb-4">Attendance Heat Map</h3>
+                    <div id="heatmap-container"></div>
+                </div>
+                <div class="widget-card">
+                    <h3 class="widget-title mb-4">Smart Leave Pattern Analyzer</h3>
+                    <div id="leave-analyzer-container" class="text-sm space-y-3"></div>
+                </div>
+                <div class="widget-card">
+                    <h3 class="widget-title mb-4">Upcoming Events (Next 7 Days)</h3>
+                    <div id="events-container" class="text-sm space-y-2"></div>
+                </div>
+                <div class="widget-card md:col-span-2 lg:col-span-1">
+                    <h3 class="widget-title mb-4">Own Leave Reason Summary</h3>
+                    <canvas id="leave-reason-chart"></canvas>
+                </div>
+                <div class="widget-card md:col-span-2">
+                    <h3 class="widget-title mb-4">Work Location History</h3>
+                    <div id="location-map" class="h-full w-full rounded-lg min-h-[220px] bg-gray-200 dark:bg-gray-700"></div>
+                </div>
+                 <div class="widget-card">
+                    <h3 class="widget-title mb-4">Quick Export</h3>
+                    <div class="flex flex-col gap-3 h-full justify-center">
+                        <button id="export-pdf-shortcut" class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all bg-red-500 hover:bg-red-600 text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                            Export PDF
+                        </button>
+                        <button id="export-excel-shortcut" class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all bg-green-500 hover:bg-green-600 text-white">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                           Export Excel (CSV)
+                        </button>
+                        <button id="export-screenshot-shortcut" class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all bg-blue-500 hover:bg-blue-600 text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                            Screenshot
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- DASHBOARD END -->
+        </div>
 
         <!-- Scroll Buttons -->
         <div class="fixed bottom-6 right-6 flex flex-col gap-3 z-40">
@@ -660,45 +696,6 @@
             </button>
             <button id="scrollUpButton" class="w-12 h-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-200 rounded-full shadow-lg flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 hover:text-blue-600 transition-all duration-200 hidden">↑</button>
             <button id="scrollDownButton" class="w-12 h-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-200 rounded-full shadow-lg flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 hover:text-blue-600 transition-all duration-200">↓</button>
-        </div>
-    </div>
-    
-    <!-- Dashboard Page -->
-    <div id="dashboard-page" class="p-4 sm:p-6 lg:p-8">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">Analytics Dashboard</h2>
-            <button id="back-to-report-btn" class="bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition">Back to Report</button>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-            <!-- Quick Summary Widgets -->
-            <div id="quick-summary-widgets" class="col-span-1 md:col-span-2 xl:col-span-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
-
-            <!-- Widgets Grid -->
-            <div class="widget-card md:col-span-2">
-                <h3 class="widget-title mb-4">Attendance Heat Map</h3>
-                <div id="heatmap-container"></div>
-            </div>
-            <div class="widget-card">
-                <h3 class="widget-title mb-4">Smart Leave Pattern Analyzer</h3>
-                <div id="leave-analyzer-container" class="text-sm space-y-3"></div>
-            </div>
-            <div class="widget-card">
-                <h3 class="widget-title mb-4">Upcoming Events (Next 7 Days)</h3>
-                <div id="events-container" class="text-sm space-y-2"></div>
-            </div>
-            <div class="widget-card md:col-span-2">
-                 <h3 class="widget-title mb-4">Monthly Comparison (Leaves & OT)</h3>
-                <canvas id="monthly-comparison-chart"></canvas>
-            </div>
-            <div class="widget-card">
-                <h3 class="widget-title mb-4">Own Leave Reason Summary</h3>
-                <canvas id="leave-reason-chart"></canvas>
-            </div>
-            <div class="widget-card">
-                <h3 class="widget-title mb-4">Work Location History</h3>
-                <div id="location-map" class="h-full w-full rounded-lg min-h-[220px] bg-gray-200 dark:bg-gray-700"></div>
-            </div>
         </div>
     </div>
 
@@ -773,7 +770,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Chart and Map instances
     let leaveReasonChartInstance = null;
-    let monthlyComparisonChartInstance = null;
     let leafletMapInstance = null;
     
     const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -781,9 +777,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // DOM Elements
     const signinPage = document.getElementById('signin-page');
+    const appWrapper = document.getElementById('app-wrapper');
     const reportPage = document.getElementById('report-page');
     const dashboardPage = document.getElementById('dashboard-page');
     const authArea = document.getElementById('auth-area');
+    const pageTitle = document.getElementById('page-title');
     const headerContainer = document.getElementById('header-container');
     const daysContainer = document.getElementById('daysContainer');
     const summaryContainer = document.getElementById('summary-container');
@@ -795,9 +793,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const scrollDownButton = document.getElementById('scrollDownButton');
     const floatingDatePickerBtn = document.getElementById('floating-date-picker-btn');
 
-    // Navigation buttons
-    const goToDashboardBtn = document.getElementById('go-to-dashboard-btn');
-    const backToReportBtn = document.getElementById('back-to-report-btn');
+    // BACK BUTTON NAVIGATION START
+    const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
+    const viewFullReportBtn = document.getElementById('view-full-report-btn');
+    // BACK BUTTON NAVIGATION END
 
 
     // -----------------------------------------------------------------------------
@@ -806,18 +805,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // PAGE NAVIGATION
     const showPage = (pageId) => {
-        [signinPage, reportPage, dashboardPage].forEach(page => {
+        [reportPage, dashboardPage].forEach(page => {
             if (page.id === pageId) {
-                page.style.display = 'flex'; // Use flex for main pages
+                page.style.display = 'block';
                 page.classList.add('fade-in');
             } else {
                 page.style.display = 'none';
             }
         });
 
-        if (pageId === 'dashboard-page') {
-            renderDashboard();
+        if(pageId === 'dashboard-page') {
+             pageTitle.textContent = "Dashboard";
+             renderDashboard();
+        } else {
+             pageTitle.textContent = "Work Report";
         }
+
+        signinPage.style.display = 'none';
+        appWrapper.style.display = 'block';
     };
 
     // UTILITY & HELPER FUNCTIONS
@@ -837,7 +842,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
      const getMonthStats = (year, month) => {
         const monthPrefix = `${year}-${month}`;
-        let regularLeaves = 0, poyaPublicLeaves = 0, weekendLeaveDays = 0;
+        let regularLeaves = 0, poyaPublicLeaves = 0, weekendLeaveDays = 0, ownLeaves = 0;
         let totalOtHours = 0;
         let workingDays = 0;
 
@@ -859,6 +864,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                
                 if (data.leaveStatus === "Yes") {
+                    if (data.leaveReason === "Own Leave") ownLeaves++;
                     if (data.leaveReason === "Own Leave" || (data.leaveReason === "Custom Reason" && !isDayWeekend && !isSpecial)) regularLeaves++;
                     else if (isSpecial || data.leaveReason === "Poya Day" || data.leaveReason === "Public Holiday") poyaPublicLeaves++;
                     if (isDayWeekend && data.leaveReason === "Normal Leave Day") weekendLeaveDays++;
@@ -869,7 +875,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         const totalLeaves = regularLeaves + poyaPublicLeaves + weekendLeaveDays;
 
-        return { regularLeaves, poyaPublicLeaves, weekendLeaveDays, totalLeaves, totalOtHours, workingDays };
+        return { regularLeaves, poyaPublicLeaves, weekendLeaveDays, totalLeaves, totalOtHours, workingDays, ownLeaves };
     };
 
     // MODAL & SIDEBAR MANAGEMENT
@@ -958,17 +964,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 10);
     };
 
-    const createModal = (title, content, id = '') => {
+    const createModal = (title, content, id = '', maxWidth = 'max-w-md') => {
         return `
             <div id="${id}" class="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm flex justify-center items-center z-50 p-4 modal-bg-animate" data-dismiss="modal">
-                <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md transform transition-all modal-content-animate" onclick="event.stopPropagation()">
+                <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full ${maxWidth} transform transition-all modal-content-animate" onclick="event.stopPropagation()">
                     <div class="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-800">
                         <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">${title}</h2>
                         <button data-dismiss="modal" class="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                         </button>
                     </div>
-                    <div class="p-6">${content}</div>
+                    <div class="p-6 max-h-[70vh] overflow-y-auto">${content}</div>
                 </div>
             </div>
         `;
@@ -1468,6 +1474,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.removeItem('reminders');
                 isInitialLoad = true;
                 closeModal();
+                // onAuthStateChanged will handle UI switch
             });
         });
     };
@@ -1756,7 +1763,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     currentDate.setFullYear(pickerYear);
                     currentDate.setMonth(selectedMonth);
                     closeModal();
-                    renderAll();
+                    renderAll(); // Renders the report page
+                    if(document.getElementById('dashboard-page').style.display === 'block'){
+                        renderDashboard(); // If dashboard was open, re-render it for the new month
+                    }
                 });
             });
         };
@@ -2047,7 +2057,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // ===================================================================================
     //
-    //                          NEW DASHBOARD FUNCTIONS
+    //                          DASHBOARD START
     //
     // ===================================================================================
     
@@ -2055,35 +2065,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth();
 
-        renderQuickSummary(year, month);
         renderHeatMap(year, month);
         renderLeaveAnalyzer(year, month);
         renderUpcomingEvents();
-        renderMonthlyComparisonChart(year, month);
         renderLeaveReasonChart(year, month);
         renderLocationMap(year, month);
-    };
-
-    const renderQuickSummary = (year, month) => {
-        const stats = getMonthStats(year, month);
-        const container = document.getElementById('quick-summary-widgets');
-        const createWidget = (label, value, icon) => `
-            <div class="widget-card flex-1">
-                <div class="flex items-center gap-3">
-                    <div class="p-3 bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 rounded-lg">${icon}</div>
-                    <div>
-                        <div class="text-2xl font-bold text-gray-800 dark:text-white">${value}</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">${label}</div>
-                    </div>
-                </div>
-            </div>`;
-        
-        container.innerHTML = `
-            ${createWidget('Total Leaves', stats.totalLeaves, `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m11.99 16-2.7-2.7a.7.7 0 0 1 0-1l.01-.01a.7.7 0 0 1 1 0l1.7 1.7 3.3-3.3a.7.7 0 0 1 1 0l.01.01a.7.7 0 0 1 0 1L12.99 16a.7.7 0 0 1-1 0Z"/></svg>`)}
-            ${createWidget('Total OT Hours', stats.totalOtHours.toFixed(2), `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`)}
-            ${createWidget('Working Days', stats.workingDays, `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`)}
-            ${createWidget('Poya/Public Days', stats.poyaPublicLeaves, `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`)}
-        `;
+        addDashboardEventListeners();
     };
     
     const renderHeatMap = (year, month) => {
@@ -2092,7 +2079,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const firstDayOfMonth = (new Date(year, month, 1).getDay() + 6) % 7;
 
         let gridHTML = '<div class="grid grid-cols-7 gap-1.5 text-xs text-center">';
-        ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach(label => gridHTML += `<div class="font-bold text-gray-500 dark:text-gray-400">${label}</div>`);
+        ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach(label => gridHTML += `<div class="font-bold text-gray-500 dark:text-gray-400 py-1">${label}</div>`);
         for (let i = 0; i < firstDayOfMonth; i++) gridHTML += '<div></div>';
         
         for (let day = 1; day <= daysInMonth; day++) {
@@ -2101,30 +2088,61 @@ document.addEventListener('DOMContentLoaded', () => {
             const workingHours = calculateHoursDifference(dayData.inTime, dayData.outTime);
             
             let statusClass = 'bg-gray-100 dark:bg-gray-800/50';
-            let tooltipText = `Day ${day}: No Data`;
+            const isDayWeekend = isWeekend(year, month, day);
 
-            if (dayData.leaveStatus === 'Yes') {
-                statusClass = 'heatmap-leave';
-                tooltipText = `Leave: ${dayData.leaveReason || 'N/A'}`;
+            if (dayData.leaveReason === 'Own Leave') {
+                statusClass = 'heatmap-leave-own'; // Red
+            } else if (dayData.leaveStatus === 'Yes' || dayData.specialDays) {
+                statusClass = 'heatmap-leave-other'; // Yellow
             } else if (workingHours > 0) {
-                statusClass = 'heatmap-present';
-                tooltipText = `In: ${dayData.inTime || '-'}, Out: ${dayData.outTime || '-'}`;
-            } else if (dayData.specialDays) {
-                statusClass = 'heatmap-half-day'; // Yellow for holidays
-                tooltipText = dayData.specialDays;
-            } else if (isWeekend(year, month, day)) {
+                statusClass = 'heatmap-present'; // Green
+            } else if (isDayWeekend) {
                 statusClass = 'heatmap-weekend';
-                tooltipText = 'Weekend';
             }
 
             gridHTML += `
-                <div class="heatmap-day relative w-full aspect-square rounded-md flex items-center justify-center ${statusClass}">
+                <div class="heatmap-day cursor-pointer relative w-full aspect-square rounded-md flex items-center justify-center ${statusClass}" data-key="${dateKey}">
                     ${day}
-                    <div class="heatmap-day-tooltip">${tooltipText}</div>
                 </div>`;
         }
         gridHTML += '</div>';
         container.innerHTML = gridHTML;
+        
+        container.querySelectorAll('.heatmap-day').forEach(el => {
+            el.addEventListener('click', (e) => {
+                const key = e.currentTarget.dataset.key;
+                if (key) showHeatmapDetailModal(key);
+            });
+        });
+    };
+    
+    const showHeatmapDetailModal = (dateKey) => {
+        const dayData = workData[dateKey] || {};
+        const [year, month, day] = dateKey.split('-').map(Number);
+        const dayName = new Date(year, month, day).toLocaleDateString("en-US", { weekday: "long" });
+        const title = `${dayName}, ${months[month]} ${day}, ${year}`;
+        
+        let content = '<div class="space-y-2 text-sm">';
+        const details = {
+            "Status": dayData.leaveStatus === 'Yes' ? `Leave (${dayData.leaveReason || 'N/A'})` : (calculateHoursDifference(dayData.inTime, dayData.outTime) > 0 ? 'Present' : 'No Data'),
+            "In Time": dayData.inTime,
+            "Out Time": dayData.outTime,
+            "Work Location": dayData.workLocation,
+            "Team": dayData.teamMembers,
+            "Vehicle": dayData.vehicleNumber,
+            "KM": dayData.km,
+            "Special Day": dayData.specialDays,
+            "Leave Reason": dayData.leaveReasonText || dayData.customReasonDetails
+        };
+        
+        for (const [key, value] of Object.entries(details)) {
+            if(value) {
+                content += `<div class="flex justify-between"><strong class="text-gray-500 dark:text-gray-400">${key}:</strong> <span class="text-right text-gray-800 dark:text-gray-200">${value}</span></div>`
+            }
+        }
+        content += '</div>';
+
+        openModal(createModal(title, content, 'heatmap-detail-modal'));
     };
 
     const renderLeaveAnalyzer = (year, month) => {
@@ -2194,49 +2212,6 @@ document.addEventListener('DOMContentLoaded', () => {
         `).join('');
     };
 
-    const renderMonthlyComparisonChart = (year, month) => {
-        const ctx = document.getElementById('monthly-comparison-chart').getContext('2d');
-        const currentMonthStats = getMonthStats(year, month);
-        
-        const prevMonthDate = new Date(year, month, 1);
-        prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
-        const prevMonthStats = getMonthStats(prevMonthDate.getFullYear(), prevMonthDate.getMonth());
-
-        if (monthlyComparisonChartInstance) monthlyComparisonChartInstance.destroy();
-        
-        monthlyComparisonChartInstance = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['Total Leaves', 'Total OT Hours', 'Working Days'],
-                datasets: [
-                    {
-                        label: 'Last Month',
-                        data: [prevMonthStats.totalLeaves, prevMonthStats.totalOtHours, prevMonthStats.workingDays],
-                        backgroundColor: 'rgba(156, 163, 175, 0.5)',
-                        borderColor: 'rgba(156, 163, 175, 1)',
-                        borderWidth: 1
-                    },
-                    {
-                        label: 'This Month',
-                        data: [currentMonthStats.totalLeaves, currentMonthStats.totalOtHours, currentMonthStats.workingDays],
-                        backgroundColor: 'rgba(59, 130, 246, 0.5)',
-                        borderColor: 'rgba(59, 130, 246, 1)',
-                        borderWidth: 1
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: { duration: 0 },
-                scales: {
-                    y: { beginAtZero: true }
-                },
-                plugins: { legend: { position: 'bottom' } }
-            }
-        });
-    };
-
     const renderLeaveReasonChart = (year, month) => {
         const ctx = document.getElementById('leave-reason-chart').getContext('2d');
         const monthPrefix = `${year}-${month}`;
@@ -2254,6 +2229,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (leaveReasonChartInstance) leaveReasonChartInstance.destroy();
         if(sortedReasons.length === 0) {
+            ctx.canvas.parentElement.innerHTML += `<p class="text-gray-500 text-center py-4">No 'Own Leave' reasons recorded.</p>`;
             ctx.canvas.style.display = 'none';
             return;
         }
@@ -2316,8 +2292,33 @@ document.addEventListener('DOMContentLoaded', () => {
                  .bindPopup(`<b>${location}</b><br>${details.join('<br>')}`);
             }
         }
-        setTimeout(() => leafletMapInstance?.invalidateSize(), 10);
+        setTimeout(() => leafletMapInstance?.invalidateSize(), 100);
     };
+
+    const addDashboardEventListeners = () => {
+        document.getElementById('export-pdf-shortcut').addEventListener('click', () => {
+            showExportMonthPickerModal((year, month) => showExportPreview(year, month));
+        });
+        document.getElementById('export-excel-shortcut').addEventListener('click', () => {
+            showExportMonthPickerModal((year, month) => exportAsCSV(year, month));
+        });
+        document.getElementById('export-screenshot-shortcut').addEventListener('click', () => {
+            loadingSpinner.style.display = 'flex';
+            const activePage = document.getElementById('dashboard-page');
+            html2canvas(activePage, { scale: 2, useCORS: true, backgroundColor: document.documentElement.classList.contains('dark') ? '#111827' : '#f8f9fa' }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `dashboard-screenshot-${currentDate.getFullYear()}-${currentDate.getMonth()+1}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+                loadingSpinner.style.display = 'none';
+            }).catch(err => {
+                console.error("Screenshot failed:", err);
+                loadingSpinner.style.display = 'none';
+            });
+        });
+    }
+
+    // DASHBOARD END
 
     const exportAsCSV = (year, month) => {
         const daysInMonth = getDaysInMonth(year, month);
@@ -2350,7 +2351,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderSummary();
     };
 
-    const initializeApp = () => {
+    const initializeAppForUser = () => {
         renderAll();
         scrollToToday();
         loadingSpinner.style.opacity = '0';
@@ -2374,8 +2375,10 @@ document.addEventListener('DOMContentLoaded', () => {
     scrollDownButton.addEventListener('click', () => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }));
     floatingDatePickerBtn.addEventListener('click', showDatePickerModal);
 
-    goToDashboardBtn.addEventListener('click', () => showPage('dashboard-page'));
-    backToReportBtn.addEventListener('click', () => showPage('report-page'));
+    // BACK BUTTON NAVIGATION START
+    backToDashboardBtn.addEventListener('click', () => showPage('dashboard-page'));
+    viewFullReportBtn.addEventListener('click', () => showPage('report-page'));
+    // BACK BUTTON NAVIGATION END
 
     const firebaseConfig = {
       apiKey: "AIzaSyDzaAqT7NRAyQhTNDh8GsMKlTKNmttzIWo",
@@ -2401,7 +2404,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (currentUser && currentUser.emailVerified) {
             user = currentUser;
-            showPage('report-page');
+            
             renderMainNav(user);
 
             const userRef = db.collection("users").doc(user.uid);
@@ -2424,10 +2427,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = doc.data();
                 workData = data?.workData || {};
                 reminders = data?.reminders || [];
-                initializeApp();
+                showPage('report-page'); // Default to report page on data load/update
+                initializeAppForUser();
             }, err => {
                 console.error("Firestore snapshot error: ", err);
-                initializeApp();
+                initializeAppForUser();
             });
 
         } else {
@@ -2438,7 +2442,8 @@ document.addEventListener('DOMContentLoaded', () => {
             workData = JSON.parse(localStorage.getItem('workData') || '{}');
             reminders = JSON.parse(localStorage.getItem('reminders') || '[]');
             
-            showPage('signin-page');
+            appWrapper.style.display = 'none';
+            signinPage.style.display = 'flex';
             addSigninEventListeners();
             loadingSpinner.style.opacity = '0';
             setTimeout(() => { loadingSpinner.style.display = 'none'; }, 300);
