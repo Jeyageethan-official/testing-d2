@@ -726,14 +726,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         headerContainer.innerHTML = `
             <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
-                <div class="flex items-center gap-2">
-                    <button id="prev-month-btn" class="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">← Previous Month</button>
-                    <div class="px-4 py-2 text-lg font-semibold text-gray-800 dark:text-gray-200 text-center w-48">${months[month]} ${year}</div>
-                    <button id="next-month-btn" class="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Next Month →</button>
+                <div class="text-xl font-bold text-gray-800 dark:text-gray-200">
+                    ${months[month]} ${year}
                 </div>
                 <div class="flex items-center gap-2 bg-white dark:bg-gray-900 p-2 rounded-full border border-gray-200 dark:border-gray-800 shadow-sm">
                     <button id="ai-assistant-btn" title="AI Assistant" class="p-2 text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-800 rounded-full transition-colors ai-btn-pulse">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/></svg>
+                    </button>
+                    <button id="month-picker-btn" title="Select Month" class="p-2 text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-800 rounded-full transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path><path d="M8 18h.01"></path><path d="M12 18h.01"></path><path d="M16 18h.01"></path></svg>
                     </button>
                     <button id="date-picker-btn" title="Go to Date" class="p-2 text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-800 rounded-full transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></button>
                     <button id="theme-toggle-btn" title="Toggle Theme" class="p-2 text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-800 rounded-full transition-colors">
@@ -1009,13 +1010,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const addHeaderEventListeners = () => {
-        document.getElementById('prev-month-btn').addEventListener('click', () => navigateMonth(-1));
-        document.getElementById('next-month-btn').addEventListener('click', () => navigateMonth(1));
+        document.getElementById('ai-assistant-btn').addEventListener('click', showAiModal);
+        document.getElementById('month-picker-btn').addEventListener('click', showMonthPickerModal);
+        document.getElementById('date-picker-btn').addEventListener('click', showDatePickerModal);
         document.getElementById('theme-toggle-btn').addEventListener('click', handleThemeToggle);
         document.getElementById('reminder-btn').addEventListener('click', showReminderModal);
         document.getElementById('share-btn').addEventListener('click', showShareModal);
-        document.getElementById('date-picker-btn').addEventListener('click', showDatePickerModal);
-        document.getElementById('ai-assistant-btn').addEventListener('click', showAiModal);
     };
 
     const addSingleDayCardEventListeners = (dayBox) => {
@@ -1070,11 +1070,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ACTION HANDLERS
-    const navigateMonth = (direction) => {
-        currentDate.setMonth(currentDate.getMonth() + direction);
-        renderAll();
-    };
-
     const handleClearMonthData = () => {
         if (window.confirm("Are you sure you want to clear all data for this month? This action cannot be undone.")) {
             const monthPrefix = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
@@ -1508,6 +1503,65 @@ document.addEventListener('DOMContentLoaded', () => {
                 closeModal();
             });
         });
+    };
+
+    const showMonthPickerModal = () => {
+        let pickerYear = currentDate.getFullYear();
+
+        const renderMonthPickerContent = (year) => {
+            const currentSelectedYear = currentDate.getFullYear();
+            const currentSelectedMonth = currentDate.getMonth();
+
+            const monthsGrid = months.map((month, index) => {
+                const isSelected = year === currentSelectedYear && index === currentSelectedMonth;
+                const selectedClasses = isSelected 
+                    ? 'bg-blue-600 text-white font-semibold' 
+                    : 'bg-gray-100 dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-gray-700';
+                return `<button data-month="${index}" class="month-select-btn w-full text-center p-3 rounded-lg transition-colors ${selectedClasses}">${month.substring(0, 3)}</button>`;
+            }).join('');
+
+            const modalContentEl = document.getElementById('month-picker-content');
+            if (modalContentEl) {
+                modalContentEl.innerHTML = `
+                    <div class="flex justify-between items-center mb-4">
+                        <button id="prev-year-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                        </button>
+                        <span class="font-bold text-lg text-gray-800 dark:text-gray-200">${year}</span>
+                        <button id="next-year-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-4 gap-2">
+                        ${monthsGrid}
+                    </div>
+                `;
+                addPickerListeners();
+            }
+        };
+
+        const addPickerListeners = () => {
+            document.getElementById('prev-year-btn').addEventListener('click', () => {
+                pickerYear--;
+                renderMonthPickerContent(pickerYear);
+            });
+            document.getElementById('next-year-btn').addEventListener('click', () => {
+                pickerYear++;
+                renderMonthPickerContent(pickerYear);
+            });
+            document.querySelectorAll('.month-select-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const selectedMonth = parseInt(e.currentTarget.dataset.month, 10);
+                    currentDate.setFullYear(pickerYear);
+                    currentDate.setMonth(selectedMonth);
+                    closeModal();
+                    renderAll();
+                });
+            });
+        };
+
+        openModal(createModal('Select Month & Year', '<div id="month-picker-content"></div>'));
+        renderMonthPickerContent(pickerYear);
     };
 
     const showShareModal = () => {
