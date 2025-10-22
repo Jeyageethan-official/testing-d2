@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Work Report</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg stroke='%233b82f6' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'%3E%3Cpath d='M25,15 h50 a5,5 0 0 1 5,5 v60 a5,5 0 0 1 -5,5 h-50 a5,5 0 0 1 -5,-5 v-60 a5,5 0 0 1 5,-5 z' /%3E%3Cpath d='M35 35 H 75' /%3E%3Cpath d='M35 50 H 75' /%3E%3Cpath d='M35 65 H 60' /%3E%3C/g%3E%3C/svg%3E">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -423,11 +424,11 @@
             background: rgba(17, 24, 39, 0.8); /* gray-900 */
             border-bottom-color: #374151; /* gray-700 */
         }
-        .nav-btn.active {
+        .nav-link.active {
             background-color: #e0e7ff; /* indigo-100 */
             color: #3730a3; /* indigo-800 */
         }
-        html.dark .nav-btn.active {
+        html.dark .nav-link.active {
             background-color: #3730a3; /* indigo-800 */
             color: #e0e7ff; /* indigo-100 */
         }
@@ -449,6 +450,12 @@
         }
         #dashboard-content {
             flex-grow: 1;
+        }
+        /* Override app-container styles for dashboard integration */
+        #app-container {
+            max-width: none;
+            margin: 0;
+            padding: 0; /* Let the dashboard content add padding */
         }
     </style>
 </head>
@@ -502,9 +509,8 @@
                     <span>Work Report</span>
                 </div>
                 <!-- Navigation Links -->
-                <div id="main-nav-links" class="hidden md:flex items-center gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
-                    <button data-nav="home" class="nav-btn px-4 py-1.5 text-sm font-semibold rounded-md transition-colors">Dashboard</button>
-                    <button data-nav="report" class="nav-btn px-4 py-1.5 text-sm font-semibold rounded-md transition-colors">Report</button>
+                <div class="hidden md:flex items-center gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+                    <a href="#" class="nav-link active px-4 py-1.5 text-sm font-semibold rounded-md transition-colors">Report</a>
                 </div>
             </div>
             <div id="dashboard-auth-area" class="relative">
@@ -512,38 +518,31 @@
             </div>
         </nav>
         
-        <!-- Main Content Area -->
+        <!-- Main Content (houses the original app) -->
         <main id="dashboard-content" class="p-4 sm:p-6 lg:p-8">
-            
-            <!-- Dashboard Home Page -->
-            <main id="dashboard-home-page" class="opacity-0 transition-opacity duration-500">
-                <!-- Content will be rendered by JS -->
-            </main>
+            <div id="app-container" class="relative text-gray-800 dark:text-gray-200 opacity-0 transition-opacity duration-500">
+                <!-- Auth Area IS GONE, moved to nav -->
+                
+                <!-- Header will be rendered here -->
+                <header id="header-container"></header>
 
-            <!-- Report Page (Original App) -->
-            <main id="report-page" class="hidden">
-                 <div id="app-container" class="relative text-gray-800 dark:text-gray-200">
-                    <!-- Header will be rendered here -->
-                    <header id="header-container"></header>
-
-                    <main class="mt-8">
-                        <!-- Day cards will be rendered here -->
-                        <div id="daysContainer" class="space-y-8"></div>
-                        <!-- Summary will be rendered here -->
-                        <div id="summary-container"></div>
-                    </main>
-                </div>
-                 <!-- Scroll Buttons for Report Page -->
-                <div class="fixed bottom-6 right-6 flex flex-col gap-3 z-40">
-                    <button id="floating-date-picker-btn" title="Go to Date" class="w-12 h-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-200 rounded-full shadow-lg flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 hover:text-blue-600 transition-all duration-200 hidden">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                    </button>
-                    <button id="scrollUpButton" class="w-12 h-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-200 rounded-full shadow-lg flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 hover:text-blue-600 transition-all duration-200 hidden">↑</button>
-                    <button id="scrollDownButton" class="w-12 h-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-200 rounded-full shadow-lg flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 hover:text-blue-600 transition-all duration-200">↓</button>
-                </div>
-            </main>
-
+                <main class="mt-8">
+                    <!-- Day cards will be rendered here -->
+                    <div id="daysContainer" class="space-y-8"></div>
+                    <!-- Summary will be rendered here -->
+                    <div id="summary-container"></div>
+                </main>
+            </div>
         </main>
+
+        <!-- Scroll Buttons -->
+        <div class="fixed bottom-6 right-6 flex flex-col gap-3 z-40">
+            <button id="floating-date-picker-btn" title="Go to Date" class="w-12 h-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-200 rounded-full shadow-lg flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 hover:text-blue-600 transition-all duration-200 hidden">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </button>
+            <button id="scrollUpButton" class="w-12 h-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-200 rounded-full shadow-lg flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 hover:text-blue-600 transition-all duration-200 hidden">↑</button>
+            <button id="scrollDownButton" class="w-12 h-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-200 rounded-full shadow-lg flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 hover:text-blue-600 transition-all duration-200">↓</button>
+        </div>
     </div>
 
 
@@ -625,55 +624,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const signinPage = document.getElementById('signin-page');
     const dashboardPage = document.getElementById('dashboard-page');
     const dashboardAuthArea = document.getElementById('dashboard-auth-area');
-    const mainNavLinks = document.getElementById('main-nav-links');
-    
-    // Page containers
-    const dashboardHomePage = document.getElementById('dashboard-home-page');
-    const reportPage = document.getElementById('report-page');
-
-    // Report-specific DOM elements
     const headerContainer = document.getElementById('header-container');
     const daysContainer = document.getElementById('daysContainer');
     const summaryContainer = document.getElementById('summary-container');
+    const modalRoot = document.getElementById('modal-root');
+    const loadingSpinner = document.getElementById('loading-spinner');
     const appContainer = document.getElementById('app-container');
     const scrollUpButton = document.getElementById('scrollUpButton');
     const scrollDownButton = document.getElementById('scrollDownButton');
     const floatingDatePickerBtn = document.getElementById('floating-date-picker-btn');
 
-    // Global elements
-    const modalRoot = document.getElementById('modal-root');
-    const loadingSpinner = document.getElementById('loading-spinner');
-
     // -----------------------------------------------------------------------------
     // ALL FUNCTION DEFINITIONS
     // -----------------------------------------------------------------------------
-
-    // PAGE NAVIGATION
-    const navigateTo = (pageName) => {
-        const pages = {
-            home: dashboardHomePage,
-            report: reportPage,
-        };
-        const navButtons = mainNavLinks.querySelectorAll('.nav-btn');
-
-        // Hide all pages
-        Object.values(pages).forEach(page => page.classList.add('hidden'));
-
-        // Show the target page
-        if (pages[pageName]) {
-            pages[pageName].classList.remove('hidden');
-        }
-
-        // Update nav button active state
-        navButtons.forEach(btn => {
-            if (btn.dataset.nav === pageName) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
-    };
-
 
     // UTILITY & HELPER FUNCTIONS
     const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
@@ -726,7 +689,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // COMPONENT RENDERING (as HTML strings)
-     const renderDashboardNav = (user) => {
+    const renderDashboardNav = (user) => {
         const userInitial = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
         dashboardAuthArea.innerHTML = `
             <button id="user-menu-btn" class="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold text-lg">
@@ -754,113 +717,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         document.addEventListener('click', () => dropdown.classList.add('hidden'));
         document.getElementById('logout-btn').addEventListener('click', showLogoutConfirmationModal);
-
-        mainNavLinks.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.addEventListener('click', () => navigateTo(btn.dataset.nav));
-        });
     }
 
-    const renderDashboardHome = () => {
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth();
-        const monthPrefix = `${year}-${month}`;
-
-        let regularLeaves = 0, totalOtHours = 0;
-        Object.keys(workData).forEach(key => {
-            if (key.startsWith(monthPrefix)) {
-                const data = workData[key];
-                const day = parseInt(key.split('-')[2], 10);
-                const weekend = isWeekend(year, month, day);
-                const isSpecial = data.specialDays === "Poya Day" || data.specialDays === "Public Holiday";
-                const workingHours = calculateHoursDifference(data.inTime, data.outTime);
-
-                if (workingHours > 0) {
-                     if (isSpecial) totalOtHours += workingHours;
-                     else if (weekend) totalOtHours += workingHours;
-                     else if (workingHours > 9) totalOtHours += workingHours - 9;
-                }
-                if (data.leaveReason === "Own Leave" || (data.leaveReason === "Custom Reason" && !weekend && !isSpecial)) regularLeaves++;
-            }
-        });
-        
-        const upcomingReminders = reminders
-            .filter(r => new Date(r.date) >= new Date())
-            .sort((a, b) => new Date(a.date) - new Date(b.date))
-            .slice(0, 3);
-        
-        dashboardHomePage.innerHTML = `
-            <div class="fade-in">
-                <div class="mb-8">
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-50">Dashboard</h1>
-                    <p class="text-gray-600 dark:text-gray-400 mt-1">Welcome back, ${user.displayName || user.email}. Here's your monthly overview.</p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Monthly Stats Card -->
-                    <div class="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-800/50">
-                        <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">${months[month]} ${year} at a Glance</h2>
-                        <div class="space-y-3">
-                             <div class="flex justify-between items-center">
-                                <span class="text-gray-600 dark:text-gray-400">Total OT Hours</span>
-                                <span class="font-bold text-blue-600 dark:text-blue-400 text-xl">${totalOtHours.toFixed(2)}</span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-600 dark:text-gray-400">Regular Leave Days</span>
-                                <span class="font-bold text-gray-800 dark:text-gray-200 text-xl">${regularLeaves}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                     <!-- Upcoming Reminders Card -->
-                    <div class="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-800/50">
-                        <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">Upcoming Reminders</h2>
-                        <div id="dashboard-reminders" class="space-y-3">
-                            ${upcomingReminders.length > 0 ? upcomingReminders.map(r => `
-                                <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                                    <p class="font-semibold text-gray-700 dark:text-gray-300">${r.category === 'Other' ? r.customDetails : r.category}</p>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400">${new Date(r.date).toLocaleDateString("en-US", { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</p>
-                                </div>
-                            `).join('') : '<p class="text-gray-500 text-center py-4">No upcoming reminders.</p>'}
-                        </div>
-                    </div>
-                    
-                    <!-- Quick Actions Card -->
-                    <div class="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-800/50 flex flex-col justify-center items-center text-center">
-                         <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">Quick Actions</h2>
-                         <button id="go-to-report-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all duration-300">
-                            View Full Report
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.getElementById('go-to-report-btn').addEventListener('click', () => navigateTo('report'));
-    };
-    
     const renderHeader = () => {
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth();
-        const years = Array.from({ length: 11 }, (_, i) => new Date().getFullYear() - 5 + i);
         const isDarkMode = document.documentElement.classList.contains('dark');
 
         headerContainer.innerHTML = `
-            <div class="text-center pb-4 border-b border-gray-200 dark:border-gray-800">
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-50 tracking-tight">Work Report</h1>
-            </div>
-            <div class="mt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-                 <button id="back-to-dashboard-btn" title="Back to Dashboard" class="p-2 text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-800 rounded-md transition-colors flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-                    <span>Back</span>
-                </button>
-                <div class="flex items-center gap-2 bg-white dark:bg-gray-900 p-1 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm">
-                    <button id="prev-month-btn" class="p-2 text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-800 rounded-md transition-colors">←</button>
-                    <select id="monthDropdown" class="bg-transparent text-lg font-semibold text-gray-800 dark:text-gray-200 border-none focus:ring-0 premium-select">
-                        ${months.map((m, i) => `<option value="${i}" ${i === month ? "selected" : ""}>${m}</option>`).join("")}
-                    </select>
-                    <select id="yearDropdown" class="bg-transparent text-lg font-semibold text-gray-800 dark:text-gray-200 border-none focus:ring-0 premium-select">
-                        ${years.map(y => `<option value="${y}" ${y === year ? "selected" : ""}>${y}</option>`).join("")}
-                    </select>
-                    <button id="next-month-btn" class="p-2 text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-800 rounded-md transition-colors">→</button>
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <button id="prev-month-btn" class="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">← Previous Month</button>
+                    <div class="px-4 py-2 text-lg font-semibold text-gray-800 dark:text-gray-200 text-center w-48">${months[month]} ${year}</div>
+                    <button id="next-month-btn" class="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Next Month →</button>
                 </div>
                 <div class="flex items-center gap-2 bg-white dark:bg-gray-900 p-2 rounded-full border border-gray-200 dark:border-gray-800 shadow-sm">
                     <button id="ai-assistant-btn" title="AI Assistant" class="p-2 text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-800 rounded-full transition-colors ai-btn-pulse">
@@ -1140,17 +1009,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const addHeaderEventListeners = () => {
-        document.getElementById('back-to-dashboard-btn').addEventListener('click', () => navigateTo('home'));
         document.getElementById('prev-month-btn').addEventListener('click', () => navigateMonth(-1));
         document.getElementById('next-month-btn').addEventListener('click', () => navigateMonth(1));
-        document.getElementById('monthDropdown').addEventListener('change', (e) => {
-            currentDate.setMonth(parseInt(e.target.value));
-            renderAllReportContent();
-        });
-        document.getElementById('yearDropdown').addEventListener('change', (e) => {
-            currentDate.setFullYear(parseInt(e.target.value));
-            renderAllReportContent();
-        });
         document.getElementById('theme-toggle-btn').addEventListener('click', handleThemeToggle);
         document.getElementById('reminder-btn').addEventListener('click', showReminderModal);
         document.getElementById('share-btn').addEventListener('click', showShareModal);
@@ -1212,7 +1072,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ACTION HANDLERS
     const navigateMonth = (direction) => {
         currentDate.setMonth(currentDate.getMonth() + direction);
-        renderAllReportContent();
+        renderAll();
     };
 
     const handleClearMonthData = () => {
@@ -1226,7 +1086,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 saveLocalData();
             }
-            renderAllReportContent();
+            renderAll();
         }
     };
     
@@ -1261,7 +1121,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     saveLocalData();
                 }
-                renderAllReportContent();
+                renderAll();
                 alert("Data restored successfully.");
             } catch (err) {
                 alert("Error restoring data. Invalid file.");
@@ -1937,26 +1797,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // MAIN RENDER/INITIALIZATION FUNCTIONS
-    const renderAllReportContent = () => {
+    const renderAll = () => {
+        //renderAuthArea(); // Replaced by Dashboard Nav
         renderHeader();
         renderDays();
         renderSummary();
     };
 
     const initializeApp = () => {
-        renderAllReportContent();
-        renderDashboardHome();
-        navigateTo('home'); // Start on the dashboard
-        
+        renderAll();
         scrollToToday();
         loadingSpinner.style.opacity = '0';
         setTimeout(() => {
             loadingSpinner.style.display = 'none';
         }, 300);
-        
-        // Fade in the dashboard home page
-        dashboardHomePage.classList.add('fade-in');
-        dashboardHomePage.style.opacity = '1';
+        appContainer.classList.add('fade-in');
+        appContainer.style.opacity = '1';
     };
 
     // -----------------------------------------------------------------------------
@@ -2073,15 +1929,10 @@ document.addEventListener('DOMContentLoaded', () => {
 <script type="module">
     import { GoogleGenAI } from "https://aistudiocdn.com/@google/genai@^0.14.0";
 
+    const apiKey = "AIzaSyCppq-j59GI9USv1Y0v2miQEn9y_7NfIWM";
+    const ai = new GoogleGenAI({ apiKey: apiKey });
+
     window.generateProfessionalMessage = async (userInput) => {
-        const hasApiKey = process.env.API_KEY && process.env.API_KEY !== "undefined";
-
-        if (!hasApiKey) {
-            throw new Error("API key is not configured. Please set the API_KEY environment variable.");
-        }
-
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        
         try {
             const prompt = `You are an expert in converting informal 'Tanglish' (a mix of Tamil and English) text into professional, formal English. Convert the following message into a polite and professional English sentence suitable for a workplace context. Do not add any explanations, preamble, or markdown formatting. Just provide the converted sentence as plain text. Tanglish message: "${userInput}"`;
 
@@ -2094,10 +1945,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error("Error calling Gemini API:", error);
             if (error.toString().includes('API key not valid')) {
-                return "The API key is not valid. Please check your configuration.";
-            }
-             if (error.toString().includes('429')) { // Quota exceeded
-                return "The request was blocked due to safety settings or high demand. Please try again later.";
+                return "The provided API key is not valid. Please check the key and try again.";
             }
             return "Sorry, there was an error processing your request. Please try again.";
         }
