@@ -21,6 +21,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
+    <!-- Chart.js for Dashboard -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Leaflet.js for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
     <style>
         :root {
             --bg-light: #f8f9fa; /* A clean, near-white */
@@ -405,7 +412,7 @@
         }
 
         /* Dashboard */
-        #dashboard-page {
+        #dashboard-page-container {
             display: none;
             flex-direction: column;
             min-height: 100vh;
@@ -450,6 +457,7 @@
         }
         #dashboard-content {
             flex-grow: 1;
+            position: relative;
         }
         /* Override app-container styles for dashboard integration */
         #app-container {
@@ -520,6 +528,99 @@
         html.dark .sidebar-item:hover {
             background-color: #1f2937; /* gray-800 */
         }
+
+        /* ========== NEW DASHBOARD STYLES ========== */
+        .page-view {
+            transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+            will-change: transform, opacity;
+        }
+        .page-view.hidden {
+            opacity: 0;
+            transform: scale(0.98);
+            pointer-events: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+        }
+
+        /* Widget styles */
+        .widget-card {
+            border-radius: 1.25rem; /* ~20px */
+            padding: 1.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+        .widget-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.15), 0 10px 15px -8px rgba(0, 0, 0, 0.1);
+        }
+        html.dark .widget-card {
+             background: rgba(31, 41, 55, 0.5); /* gray-800/50 */
+             border-color: rgba(255, 255, 255, 0.1);
+        }
+        .widget-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #4b5563; /* gray-600 */
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        html.dark .widget-title {
+            color: #9ca3af; /* gray-400 */
+        }
+
+        /* Heatmap styles */
+        .heatmap-day {
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        .heatmap-day:hover .heatmap-day-tooltip {
+            opacity: 1;
+            transform: translateY(-5px) scale(1);
+            visibility: visible;
+        }
+        .heatmap-present { background-color: rgba(34, 197, 94, 0.7); } /* green-500 */
+        .heatmap-leave { background-color: rgba(239, 68, 68, 0.7); } /* red-500 */
+        .heatmap-halfday { background-color: rgba(251, 191, 36, 0.7); } /* amber-400 */
+        .heatmap-weekend { background-color: #e5e7eb; } /* gray-200 */
+        html.dark .heatmap-weekend { background-color: #374151; } /* gray-700 */
+        .heatmap-day-tooltip {
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%) scale(0.95);
+            background-color: #111827; /* gray-900 */
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            z-index: 10;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        /* Floating action buttons */
+        @keyframes fab-glow {
+            0%, 100% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.4); }
+            50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.8); }
+        }
+        .fab-button {
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            animation: fab-glow 3s infinite;
+        }
+        .fab-button:hover {
+            transform: scale(1.1) translateY(-2px);
+            animation: none;
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+        }
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-950">
@@ -555,10 +656,13 @@
     </div>
     
     <!-- Dashboard Page -->
-    <div id="dashboard-page">
+    <div id="dashboard-page-container">
         <!-- Top Navigation -->
         <nav id="dashboard-nav" class="flex items-center justify-between">
-            <div class="flex items-center gap-8">
+            <div class="flex items-center gap-2">
+                <button id="back-to-dashboard-btn" title="Back to Dashboard" class="p-2 -ml-2 text-gray-600 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
                 <!-- Logo -->
                 <div class="flex items-center gap-2 text-xl font-bold text-gray-800 dark:text-white">
                     <svg class="w-8 h-8 text-blue-600" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -569,11 +673,7 @@
                             <path d="M35 65 H 60" />
                         </g>
                     </svg>
-                    <span>Work Report</span>
-                </div>
-                <!-- Navigation Links -->
-                <div class="hidden md:flex items-center gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
-                    <a href="#" class="nav-link active px-4 py-1.5 text-sm font-semibold rounded-md transition-colors">Report</a>
+                    <span id="nav-title">Work Report</span>
                 </div>
             </div>
             <div id="dashboard-auth-area" class="relative">
@@ -581,29 +681,74 @@
             </div>
         </nav>
         
-        <!-- Main Content (houses the original app) -->
-        <main id="dashboard-content" class="p-4 sm:p-6 lg:p-8">
-            <div id="app-container" class="relative text-gray-800 dark:text-gray-200 opacity-0 transition-opacity duration-500">
-                <!-- Header (now empty, content moved to sidebar) -->
-                <header id="header-container"></header>
+        <!-- Main Content (houses both views) -->
+        <main id="dashboard-content">
+             <!-- Report View -->
+            <div id="report-view" class="page-view p-4 sm:p-6 lg:p-8">
+                <div id="app-container" class="relative text-gray-800 dark:text-gray-200 opacity-0 transition-opacity duration-500">
+                    <!-- Header (now empty, content moved to sidebar) -->
+                    <header id="header-container"></header>
 
-                <main class="mt-8">
-                    <!-- Day cards will be rendered here -->
-                    <div id="daysContainer" class="space-y-8"></div>
-                    <!-- Summary will be rendered here -->
-                    <div id="summary-container"></div>
-                </main>
+                    <main class="mt-8">
+                        <!-- Day cards will be rendered here -->
+                        <div id="daysContainer" class="space-y-8"></div>
+                        <!-- Summary will be rendered here -->
+                        <div id="summary-container"></div>
+                    </main>
+                </div>
+                <!-- Scroll Buttons -->
+                <div id="report-scroll-buttons" class="fixed bottom-6 right-6 flex flex-col gap-3 z-40">
+                    <button id="floating-date-picker-btn" title="Go to Date" class="w-12 h-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-200 rounded-full shadow-lg flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 hover:text-blue-600 transition-all duration-200 hidden">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </button>
+                    <button id="scrollUpButton" class="w-12 h-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-200 rounded-full shadow-lg flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 hover:text-blue-600 transition-all duration-200 hidden">↑</button>
+                    <button id="scrollDownButton" class="w-12 h-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-200 rounded-full shadow-lg flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 hover:text-blue-600 transition-all duration-200">↓</button>
+                </div>
+            </div>
+
+             <!-- Dashboard View -->
+            <div id="dashboard-view" class="page-view hidden p-4 sm:p-6 lg:p-8">
+                <div class="space-y-8">
+                    <!-- Quick Summary & Full Report Button -->
+                    <div class="flex flex-col md:flex-row gap-4 items-center">
+                        <div id="quick-summary-widgets" class="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full"></div>
+                        <button id="view-full-report-btn" class="w-full md:w-auto mt-4 md:mt-0 flex-shrink-0 bg-blue-600 text-white font-semibold px-6 py-3 rounded-xl shadow-lg hover:bg-blue-700 transition-all duration-300 transform hover:-translate-y-0.5 whitespace-nowrap">View Full Report</button>
+                    </div>
+                    
+                    <!-- Main Widgets Grid -->
+                    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                        <div class="widget-card xl:col-span-2 min-h-[300px]">
+                            <h3 class="widget-title mb-4">Attendance Heat Map</h3>
+                            <div id="heatmap-container"></div>
+                        </div>
+                        <div class="widget-card space-y-4 min-h-[300px]">
+                             <h3 class="widget-title">Smart Leave Analyzer</h3>
+                             <div id="leave-analyzer-container" class="text-sm space-y-3"></div>
+                             <h3 class="widget-title pt-4">Upcoming Events (7 Days)</h3>
+                             <div id="events-container" class="text-sm space-y-2"></div>
+                        </div>
+                         <div class="widget-card min-h-[300px]">
+                            <h3 class="widget-title mb-4">Monthly Comparison</h3>
+                            <canvas id="comparison-chart"></canvas>
+                        </div>
+                        <div class="widget-card min-h-[300px]">
+                            <h3 class="widget-title mb-4">Own Leave Reasons</h3>
+                            <canvas id="leave-reason-chart"></canvas>
+                        </div>
+                        <div class="widget-card min-h-[300px]">
+                            <h3 class="widget-title mb-4">Work Location History</h3>
+                            <div id="location-map" class="h-full w-full rounded-lg min-h-[250px] bg-gray-200 dark:bg-gray-700"></div>
+                        </div>
+                    </div>
+                </div>
+                 <!-- Floating Quick Export Buttons -->
+                <div class="fixed bottom-6 right-6 flex flex-col gap-4 z-40">
+                    <button id="quick-export-pdf" title="Export as PDF" class="fab-button w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></button>
+                    <button id="quick-export-csv" title="Export as Excel (CSV)" class="fab-button w-14 h-14 bg-green-600 text-white rounded-full shadow-lg flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14v6m0-10.01V10M11.5 2.02c-1.83.2-3.53.86-4.9 1.82A9.91 9.91 0 002.2 12c0 5.52 4.48 10 10 10s10-4.48 10-10c0-1.5-.34-2.9-.93-4.16"/><path d="M9 12h6"/></svg></button>
+                    <button id="quick-export-png" title="Export as Screenshot" class="fab-button w-14 h-14 bg-purple-600 text-white rounded-full shadow-lg flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
+                </div>
             </div>
         </main>
-
-        <!-- Scroll Buttons -->
-        <div class="fixed bottom-6 right-6 flex flex-col gap-3 z-40">
-            <button id="floating-date-picker-btn" title="Go to Date" class="w-12 h-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-200 rounded-full shadow-lg flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 hover:text-blue-600 transition-all duration-200 hidden">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            </button>
-            <button id="scrollUpButton" class="w-12 h-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-200 rounded-full shadow-lg flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 hover:text-blue-600 transition-all duration-200 hidden">↑</button>
-            <button id="scrollDownButton" class="w-12 h-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-200 rounded-full shadow-lg flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 hover:text-blue-600 transition-all duration-200">↓</button>
-        </div>
     </div>
 
 
@@ -675,12 +820,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let reminders = [];
     let isInitialLoad = true;
     
+    // Chart and Map instances
+    let comparisonChartInstance = null;
+    let leaveReasonChartInstance = null;
+    let leafletMapInstance = null;
+    
     const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     const reminderCategories = ['Wedding', 'Nobility Ceremony', 'Birthday', 'House Warming Ceremony', 'Other'];
     
     // DOM Elements
     const signinPage = document.getElementById('signin-page');
-    const dashboardPage = document.getElementById('dashboard-page');
+    const dashboardPageContainer = document.getElementById('dashboard-page-container');
     const dashboardAuthArea = document.getElementById('dashboard-auth-area');
     const headerContainer = document.getElementById('header-container');
     const daysContainer = document.getElementById('daysContainer');
@@ -692,6 +842,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const scrollUpButton = document.getElementById('scrollUpButton');
     const scrollDownButton = document.getElementById('scrollDownButton');
     const floatingDatePickerBtn = document.getElementById('floating-date-picker-btn');
+    const reportScrollButtons = document.getElementById('report-scroll-buttons');
+
+    // New Dashboard Elements
+    const reportView = document.getElementById('report-view');
+    const dashboardView = document.getElementById('dashboard-view');
+    const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
+    const viewFullReportBtn = document.getElementById('view-full-report-btn');
+    const navTitle = document.getElementById('nav-title');
+
 
     // -----------------------------------------------------------------------------
     // ALL FUNCTION DEFINITIONS
@@ -712,6 +871,63 @@ document.addEventListener('DOMContentLoaded', () => {
         if (outMinutes < inMinutes) return 0;
         return (outMinutes - inMinutes) / 60;
     };
+     const getMonthStats = (year, month) => {
+        const monthPrefix = `${year}-${month}`;
+        let regularLeaves = 0, specialDays = 0, weekendLeaveDays = 0;
+        let weekendOtHours = 0, satSunOtHours = 0, poyaPublicOtHours = 0;
+        let workingDays = 0;
+        let halfDays = 0;
+
+        Object.keys(workData).forEach(key => {
+            if (key.startsWith(monthPrefix)) {
+                const data = workData[key];
+                const day = parseInt(key.split('-')[2], 10);
+                const isDayWeekend = isWeekend(year, month, day);
+                const isSpecial = data.specialDays === "Poya Day" || data.specialDays === "Public Holiday";
+                const workingHours = calculateHoursDifference(data.inTime, data.outTime);
+
+                if (workingHours > 0) {
+                    workingDays++;
+                    if (isSpecial) poyaPublicOtHours += workingHours;
+                    else if (isDayWeekend) satSunOtHours += workingHours;
+                    else if (workingHours > 9) weekendOtHours += workingHours - 9;
+                }
+               
+                if (data.leaveStatus === "Yes") {
+                    if (data.leaveReason === "Own Leave" || (data.leaveReason === "Custom Reason" && !isDayWeekend && !isSpecial)) regularLeaves++;
+                    else if (data.leaveReason === "Poya Day" || data.leaveReason === "Public Holiday" || (data.leaveReason === "Custom Reason" && (isDayWeekend || isSpecial))) specialDays++;
+                    if (isDayWeekend && data.leaveReason === "Normal Leave Day") weekendLeaveDays++;
+                    
+                    // Half-day logic: leave is 'Yes' but they also worked
+                    if (workingHours > 0 && workingHours < 5) halfDays++;
+                }
+            }
+        });
+        const totalOtHours = weekendOtHours + satSunOtHours + poyaPublicOtHours;
+        const totalLeaves = regularLeaves + specialDays + weekendLeaveDays;
+
+        return { regularLeaves, specialDays, weekendLeaveDays, totalLeaves, totalOtHours, workingDays, halfDays };
+    };
+
+
+    // PAGE NAVIGATION
+    const showReportView = () => {
+        reportView.classList.remove('hidden');
+        dashboardView.classList.add('hidden');
+        backToDashboardBtn.classList.remove('hidden');
+        reportScrollButtons.classList.remove('hidden');
+        navTitle.textContent = 'Work Report';
+    };
+
+    const showDashboardView = () => {
+        reportView.classList.add('hidden');
+        dashboardView.classList.remove('hidden');
+        backToDashboardBtn.classList.add('hidden');
+        reportScrollButtons.classList.add('hidden');
+        navTitle.textContent = 'Dashboard';
+        renderDashboard();
+    };
+
 
     // MODAL & SIDEBAR MANAGEMENT
     const openModal = (modalHTML) => {
@@ -963,45 +1179,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderSummary = () => {
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth();
-        const monthPrefix = `${year}-${month}`;
-
-        let regularLeaves = 0, specialDays = 0, weekendLeaveDays = 0;
-        let weekendOtHours = 0, satSunOtHours = 0, poyaPublicOtHours = 0;
-
-        Object.keys(workData).forEach(key => {
-            if (key.startsWith(monthPrefix)) {
-                const data = workData[key];
-                const day = parseInt(key.split('-')[2], 10);
-                const weekend = isWeekend(year, month, day);
-                const isSpecial = data.specialDays === "Poya Day" || data.specialDays === "Public Holiday";
-                const workingHours = calculateHoursDifference(data.inTime, data.outTime);
-
-                if (workingHours > 0) {
-                     if (isSpecial) poyaPublicOtHours += workingHours;
-                     else if (weekend) satSunOtHours += workingHours;
-                     else if (workingHours > 9) weekendOtHours += workingHours - 9;
-                }
-               
-                if (data.leaveReason === "Own Leave" || (data.leaveReason === "Custom Reason" && !weekend && !isSpecial)) regularLeaves++;
-                else if (data.leaveReason === "Poya Day" || data.leaveReason === "Public Holiday" || (data.leaveReason === "Custom Reason" && (weekend || isSpecial))) specialDays++;
-                
-                if (weekend && data.leaveReason === "Normal Leave Day") weekendLeaveDays++;
-            }
-        });
-        const totalOtHours = weekendOtHours + satSunOtHours + poyaPublicOtHours;
-
+        const stats = getMonthStats(year, month);
+        
         summaryContainer.innerHTML = `
             <div class="mt-8 p-6 bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-800/50">
                 <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Monthly Summary</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-gray-600 dark:text-gray-300">
-                    <p>Leave Days (Regular): <span class="font-semibold text-gray-800 dark:text-gray-100">${regularLeaves}</span></p>
-                    <p>Leave Days (Poya/Public): <span class="font-semibold text-gray-800 dark:text-gray-100">${specialDays}</span></p>
-                    <p>Leave Days (Weekend): <span class="font-semibold text-gray-800 dark:text-gray-100">${weekendLeaveDays}</span></p>
+                    <p>Leave Days (Regular): <span class="font-semibold text-gray-800 dark:text-gray-100">${stats.regularLeaves}</span></p>
+                    <p>Leave Days (Poya/Public): <span class="font-semibold text-gray-800 dark:text-gray-100">${stats.specialDays}</span></p>
+                    <p>Leave Days (Weekend): <span class="font-semibold text-gray-800 dark:text-gray-100">${stats.weekendLeaveDays}</span></p>
                     <div class="md:col-span-2 my-2 border-t border-gray-200 dark:border-gray-800"></div>
-                    <p>Weekday OT Hours: <span class="font-semibold text-gray-800 dark:text-gray-100">${weekendOtHours.toFixed(2)}</span> hours</p>
-                    <p>Weekend OT Hours: <span class="font-semibold text-gray-800 dark:text-gray-100">${satSunOtHours.toFixed(2)}</span> hours</p>
-                    <p>Poya/Public OT Hours: <span class="font-semibold text-gray-800 dark:text-gray-100">${poyaPublicOtHours.toFixed(2)}</span> hours</p>
-                    <p class="md:col-span-2 text-lg font-bold text-blue-600 dark:text-blue-400">Total OT Hours: <span id="totalOtHours">${totalOtHours.toFixed(2)}</span> hours</p>
+                    <p class="md:col-span-2 text-lg font-bold text-blue-600 dark:text-blue-400">Total OT Hours: <span id="totalOtHours">${stats.totalOtHours.toFixed(2)}</span> hours</p>
                 </div>
                 <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row gap-4">
                     <button id="backup-btn" class="w-full sm:w-auto flex-1 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-semibold px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-900 hover:bg-blue-100 dark:hover:bg-blue-950 transition">Backup Month Data</button>
@@ -1171,7 +1359,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const addSummaryEventListeners = () => {
         document.getElementById('clear-month-btn').addEventListener('click', handleClearMonthData);
-        document.getElementById('backup-btn').addEventListener('click', handleBackup);
+        document.getElementById('backup-btn').addEventListener('click', () => handleBackup(currentDate.getFullYear(), currentDate.getMonth()));
         document.getElementById('restore-file-input').addEventListener('change', handleRestore);
     };
 
@@ -1191,8 +1379,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    const handleBackup = () => {
-        const monthPrefix = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
+    const handleBackup = (year, month) => {
+        const monthPrefix = `${year}-${month}`;
         const monthData = Object.keys(workData)
             .filter(key => key.startsWith(monthPrefix))
             .reduce((obj, key) => {
@@ -1204,7 +1392,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const blob = new Blob([JSON.stringify(monthData, null, 2)], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `WorkData_${currentDate.getFullYear()}_${currentDate.getMonth() + 1}.json`;
+        a.download = `WorkData_${year}_${month + 1}.json`;
         a.click();
         URL.revokeObjectURL(a.href);
     };
@@ -1662,6 +1850,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     currentDate.setMonth(selectedMonth);
                     closeModal();
                     renderAll();
+                    // If on dashboard, re-render it for the new month
+                    if (!dashboardView.classList.contains('hidden')) {
+                        renderDashboard();
+                    }
                 });
             });
         };
@@ -1671,28 +1863,67 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const showShareModal = () => {
-        const totalOt = document.getElementById('totalOtHours')?.textContent || 'N/A';
-        const summaryText = `Work Report Summary for ${months[currentDate.getMonth()]} ${currentDate.getFullYear()}:\n- Total OT Hours: ${totalOt} hours.`;
-        
         const content = `
             <div class="space-y-4">
-                <div class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border dark:border-gray-700">
-                    <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">Summary Preview</h3>
-                    <pre class="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">${summaryText}</pre>
-                </div>
-                <button id="copy-summary-btn" class="w-full px-5 py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-all bg-blue-600 text-white hover:bg-blue-700">Copy Summary as Text</button>
-                <button id="export-pdf-btn" class="w-full px-5 py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-all bg-white text-gray-800 border border-gray-300 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 dark:hover:bg-gray-700">Export Month Data as PDF</button>
+                 <p class="text-sm text-gray-600 dark:text-gray-400">
+                    Please select a month to export. The export will be based on the month you choose here.
+                </p>
+                <button id="export-pdf-btn" class="w-full px-5 py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-all bg-blue-600 text-white hover:bg-blue-700">Export Month Data as PDF</button>
+                <button id="export-csv-btn" class="w-full px-5 py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-all bg-green-600 text-white hover:bg-green-700">Export Month Data as CSV (Excel)</button>
             </div>
         `;
         openModal(createModal('Share & Export', content));
 
-        document.getElementById('copy-summary-btn').addEventListener('click', () => {
-             navigator.clipboard.writeText(summaryText)
-                .then(() => alert('Summary copied to clipboard!'))
-                .catch(() => alert('Failed to copy summary.'));
+        document.getElementById('export-pdf-btn').addEventListener('click', () => {
+            closeModal();
+            showExportMonthPickerModal((year, month) => showExportPreview(year, month, 'pdf'));
         });
-        document.getElementById('export-pdf-btn').addEventListener('click', showExportPreview);
+        document.getElementById('export-csv-btn').addEventListener('click', () => {
+            closeModal();
+            showExportMonthPickerModal((year, month) => exportAsCSV(year, month));
+        });
     };
+    
+    const showExportMonthPickerModal = (onSelectCallback) => {
+        let pickerYear = currentDate.getFullYear();
+        const title = 'Select Month to Export';
+        const content = `<div id="export-month-picker-content"></div>`;
+
+        const renderContent = (year) => {
+            const monthsGrid = months.map((month, index) => 
+                `<button data-month="${index}" class="export-month-select-btn w-full text-center p-3 rounded-lg transition-colors bg-gray-100 dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-gray-700">${month}</button>`
+            ).join('');
+
+            const modalContentEl = document.getElementById('export-month-picker-content');
+            if (modalContentEl) {
+                modalContentEl.innerHTML = `
+                    <div class="flex justify-between items-center mb-4">
+                        <button id="prev-export-year-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">&lt;</button>
+                        <span class="font-bold text-lg text-gray-800 dark:text-gray-200">${year}</span>
+                        <button id="next-export-year-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">&gt;</button>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">${monthsGrid}</div>
+                `;
+                addListeners();
+            }
+        };
+
+        const addListeners = () => {
+            document.getElementById('prev-export-year-btn').addEventListener('click', () => renderContent(--pickerYear));
+            document.getElementById('next-export-year-btn').addEventListener('click', () => renderContent(++pickerYear));
+            document.querySelectorAll('.export-month-select-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const selectedMonth = parseInt(e.currentTarget.dataset.month, 10);
+                    closeModal();
+                    onSelectCallback(pickerYear, selectedMonth);
+                });
+            });
+        };
+
+        openModal(createModal(title, content));
+        renderContent(pickerYear);
+    };
+
 
      const showAiModal = () => {
         const content = `
@@ -1839,9 +2070,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    const showExportPreview = () => {
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth();
+    const showExportPreview = (year, month, format = 'pdf') => {
         const daysInMonth = getDaysInMonth(year, month);
 
         const tableRows = Array.from({ length: daysInMonth }, (_, i) => {
@@ -1850,10 +2079,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const dayData = workData[dateKey] || {};
             const formattedDate = `${String(day).padStart(2, '0')}.${String(month + 1).padStart(2, '0')}.${year}`;
             const leaveStatusText = dayData.leaveStatus || 'No';
-            const weekend = isWeekend(year, month, day);
+            const isDayWeekend = isWeekend(year, month, day);
 
             const rowClass = 'border-b border-gray-200';
-            const dateClass = weekend ? 'text-red-500 font-bold' : '';
+            const dateClass = isDayWeekend ? 'text-red-500 font-bold' : '';
             const leaveStatusHTML = leaveStatusText === 'Yes' ? `<span class="font-bold text-blue-700">${leaveStatusText}</span>` : leaveStatusText;
 
             return `
@@ -1955,6 +2184,350 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // ===================================================================================
+    //
+    //                          NEW DASHBOARD FUNCTIONS
+    //
+    // ===================================================================================
+    
+    const renderDashboard = () => {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+
+        renderQuickSummary(year, month);
+        renderHeatMap(year, month);
+        renderLeaveAnalyzer(year, month);
+        renderUpcomingEvents();
+        renderMonthlyComparisonChart(year, month);
+        renderLeaveReasonChart(year, month);
+        renderLocationMap(year, month);
+    };
+
+    const renderQuickSummary = (year, month) => {
+        const stats = getMonthStats(year, month);
+        const container = document.getElementById('quick-summary-widgets');
+        const createWidget = (label, value, icon) => `
+            <div class="widget-card flex-1">
+                <div class="flex items-center gap-4">
+                    <div class="p-3 bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 rounded-lg">${icon}</div>
+                    <div>
+                        <div class="text-2xl font-bold text-gray-800 dark:text-white">${value}</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400 font-medium">${label}</div>
+                    </div>
+                </div>
+            </div>`;
+        
+        container.innerHTML = `
+            ${createWidget('Total Leaves', stats.totalLeaves, `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m11.99 16-2.7-2.7a.7.7 0 0 1 0-1l.01-.01a.7.7 0 0 1 1 0l1.7 1.7 3.3-3.3a.7.7 0 0 1 1 0l.01.01a.7.7 0 0 1 0 1L12.99 16a.7.7 0 0 1-1 0Z"/></svg>`)}
+            ${createWidget('Total OT Hours', stats.totalOtHours.toFixed(2), `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`)}
+            ${createWidget('Working Days', stats.workingDays, `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`)}
+            ${createWidget('Poya/Public Days', stats.specialDays, `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`)}
+        `;
+    };
+    
+    const renderHeatMap = (year, month) => {
+        const container = document.getElementById('heatmap-container');
+        const daysInMonth = getDaysInMonth(year, month);
+        const firstDayOfMonth = (new Date(year, month, 1).getDay() + 6) % 7; // Monday is 0
+
+        let gridHTML = '<div class="grid grid-cols-7 gap-1.5 text-xs text-center">';
+        // Day labels
+        ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach(label => gridHTML += `<div class="font-bold text-gray-500 dark:text-gray-400">${label}</div>`);
+        // Empty cells for alignment
+        for (let i = 0; i < firstDayOfMonth; i++) gridHTML += '<div></div>';
+        
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateKey = `${year}-${month}-${day}`;
+            const dayData = workData[dateKey] || {};
+            const workingHours = calculateHoursDifference(dayData.inTime, dayData.outTime);
+            
+            let statusClass = 'bg-gray-100 dark:bg-gray-800/50';
+            let tooltipText = `Day ${day}: No Data`;
+            
+            if(isWeekend(year, month, day)) statusClass = 'heatmap-weekend';
+
+            if (dayData.leaveStatus === 'Yes') {
+                statusClass = 'heatmap-leave';
+                tooltipText = `${dayData.leaveReason || 'Leave'}`;
+                if(workingHours > 0 && workingHours < 5) {
+                    statusClass = 'heatmap-halfday';
+                    tooltipText += ' (Half Day)';
+                }
+            } else if (Object.keys(dayData).length > 0) {
+                statusClass = 'heatmap-present';
+                tooltipText = `In: ${dayData.inTime || '-'}, Out: ${dayData.outTime || '-'}`;
+            }
+
+            gridHTML += `
+                <div class="heatmap-day relative w-full aspect-square rounded-md flex items-center justify-center ${statusClass}">
+                    ${day}
+                    <div class="heatmap-day-tooltip">${tooltipText}</div>
+                </div>`;
+        }
+        gridHTML += '</div>';
+        container.innerHTML = gridHTML;
+    };
+
+    const renderLeaveAnalyzer = (year, month) => {
+        const container = document.getElementById('leave-analyzer-container');
+        const monthPrefix = `${year}-${month}`;
+        let insights = [];
+        const leaveDays = {}; // 0:Sun, 1:Mon, etc.
+        let poyaLeaves = 0, publicLeaves = 0;
+
+        Object.keys(workData).filter(k => k.startsWith(monthPrefix)).forEach(key => {
+            const data = workData[key];
+            if (data.leaveStatus === 'Yes' && data.leaveReason === 'Own Leave') {
+                const day = parseInt(key.split('-')[2], 10);
+                const dayOfWeek = new Date(year, month, day).getDay();
+                leaveDays[dayOfWeek] = (leaveDays[dayOfWeek] || 0) + 1;
+            }
+            if (data.specialDays === 'Poya Day' && data.leaveStatus === 'Yes') poyaLeaves++;
+            if (data.specialDays === 'Public Holiday' && data.leaveStatus === 'Yes') publicLeaves++;
+        });
+
+        const dayNames = ['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays'];
+        for (const [day, count] of Object.entries(leaveDays)) {
+            if (count > 1) {
+                insights.push(`You took <strong>${count}</strong> own leaves on <strong>${dayNames[day]}</strong> this month.`);
+            }
+        }
+        if (poyaLeaves > 1) insights.push(`You took leaves on <strong>${poyaLeaves} Poya days</strong>.`);
+        
+        if (insights.length === 0) {
+            insights.push('Your leave patterns appear normal this month. Great job!');
+        }
+
+        container.innerHTML = insights.map(insight => `
+            <div class="flex items-start gap-3 p-2 rounded-lg bg-blue-50/50 dark:bg-blue-900/20">
+                <span class="text-blue-500 mt-1">✨</span>
+                <p class="text-gray-700 dark:text-gray-300">${insight}</p>
+            </div>`).join('');
+    };
+
+    const renderUpcomingEvents = () => {
+        const container = document.getElementById('events-container');
+        const now = new Date();
+        const sevenDaysLater = new Date();
+        sevenDaysLater.setDate(now.getDate() + 7);
+
+        const upcoming = reminders.filter(r => {
+            const reminderDate = new Date(r.date);
+            return reminderDate >= now && reminderDate <= sevenDaysLater;
+        }).sort((a,b) => new Date(a.date) - new Date(b.date));
+
+        if (upcoming.length === 0) {
+            container.innerHTML = `<p class="text-gray-500 text-center py-4">No upcoming events.</p>`;
+            return;
+        }
+
+        container.innerHTML = upcoming.map(r => `
+            <div class="flex items-center gap-3">
+                <div class="text-center bg-gray-100 dark:bg-gray-700 p-2 rounded-md">
+                    <div class="font-bold text-sm">${new Date(r.date).getDate()}</div>
+                    <div class="text-xs">${months[new Date(r.date).getMonth()].substring(0,3)}</div>
+                </div>
+                <div>
+                    <p class="font-semibold text-gray-800 dark:text-gray-200">${r.category}</p>
+                    ${r.customDetails ? `<p class="text-xs text-gray-500 dark:text-gray-400">${r.customDetails}</p>` : ''}
+                </div>
+            </div>
+        `).join('');
+    };
+
+    const renderMonthlyComparisonChart = (year, month) => {
+        const ctx = document.getElementById('comparison-chart').getContext('2d');
+        const thisMonthStats = getMonthStats(year, month);
+        
+        const prevMonthDate = new Date(year, month, 1);
+        prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
+        const prevMonthStats = getMonthStats(prevMonthDate.getFullYear(), prevMonthDate.getMonth());
+
+        const data = {
+            labels: ['Total OT Hours', 'Total Leaves', 'Working Days'],
+            datasets: [
+                {
+                    label: `This Month (${months[month]})`,
+                    data: [thisMonthStats.totalOtHours, thisMonthStats.totalLeaves, thisMonthStats.workingDays],
+                    backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4
+                },
+                {
+                    label: `Last Month (${months[prevMonthDate.getMonth()]})`,
+                    data: [prevMonthStats.totalOtHours, prevMonthStats.totalLeaves, prevMonthStats.workingDays],
+                    backgroundColor: 'rgba(107, 114, 128, 0.5)',
+                    borderColor: 'rgba(107, 114, 128, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }
+            ]
+        };
+
+        if (comparisonChartInstance) comparisonChartInstance.destroy();
+        comparisonChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true }
+                },
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    };
+
+    const renderLeaveReasonChart = (year, month) => {
+        const ctx = document.getElementById('leave-reason-chart').getContext('2d');
+        const monthPrefix = `${year}-${month}`;
+        const reasonCounts = {};
+        
+        Object.keys(workData).filter(k => k.startsWith(monthPrefix)).forEach(key => {
+            const data = workData[key];
+            if (data.leaveReason === 'Own Leave' && data.leaveReasonText) {
+                const reason = data.leaveReasonText.trim();
+                reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
+            }
+        });
+        
+        const sortedReasons = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+        const chartLabels = sortedReasons.map(r => r[0]);
+        const chartData = sortedReasons.map(r => r[1]);
+
+        if (leaveReasonChartInstance) leaveReasonChartInstance.destroy();
+
+        if(sortedReasons.length === 0) {
+            document.getElementById('leave-reason-chart').style.display = 'none';
+            // Optionally, show a message
+            return;
+        } else {
+             document.getElementById('leave-reason-chart').style.display = 'block';
+        }
+        
+        leaveReasonChartInstance = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Own Leave Reasons',
+                    data: chartData,
+                    backgroundColor: ['rgba(54, 162, 235, 0.6)', 'rgba(255, 206, 86, 0.6)', 'rgba(75, 192, 192, 0.6)'],
+                    borderColor: ['rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)', 'rgba(75, 192, 192, 1)'],
+                    borderWidth: 1
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+        });
+    };
+
+    const renderLocationMap = (year, month) => {
+        const mapContainer = document.getElementById('location-map');
+        if (leafletMapInstance) {
+            leafletMapInstance.remove();
+            leafletMapInstance = null;
+        }
+
+        const monthPrefix = `${year}-${month}`;
+        const locations = {};
+        Object.keys(workData).filter(k => k.startsWith(monthPrefix)).forEach(key => {
+            const data = workData[key];
+            if (data.workLocation) {
+                 // A simple way to get unique locations
+                if(!locations[data.workLocation]) {
+                     locations[data.workLocation] = [];
+                }
+                locations[data.workLocation].push(`Day ${key.split('-')[2]}: ${data.vehicleNumber || 'N/A'}`);
+            }
+        });
+        
+        // For demonstration, using placeholder coordinates. A real app would need geocoding.
+        const placeholderCoords = {
+            'Office': [6.9271, 79.8612],
+            'Colombo': [6.9344, 79.8428],
+            'Kandy': [7.2906, 80.6337],
+        };
+
+        leafletMapInstance = L.map('location-map').setView([6.9271, 79.8612], 8); // Centered on Sri Lanka
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(leafletMapInstance);
+
+        let markerCount = 0;
+        Object.entries(locations).forEach(([location, details]) => {
+            // Using placeholder coords, or skipping if not found
+            if(placeholderCoords[location]) {
+                L.marker(placeholderCoords[location])
+                 .addTo(leafletMapInstance)
+                 .bindPopup(`<b>${location}</b><br>${details.join('<br>')}`);
+                 markerCount++;
+            }
+        });
+        
+        if(markerCount === 0){
+             mapContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-gray-500">No location data for this month.</div>`;
+             if (leafletMapInstance) {
+                leafletMapInstance.remove();
+                leafletMapInstance = null;
+            }
+        }
+    };
+    
+    const exportAsCSV = (year, month) => {
+        const daysInMonth = getDaysInMonth(year, month);
+        const headers = ['Date', 'InTime', 'OutTime', 'MovementOut', 'MovementIn', 'TeamMembers', 'WorkLocation', 'VehicleNumber', 'KM', 'SpecialDay', 'LeaveStatus', 'LeaveReason', 'LeaveReasonDetails'];
+        let csvContent = "data:text/csv;charset=utf-8," + headers.join(',') + '\r\n';
+
+        for(let day = 1; day <= daysInMonth; day++) {
+            const dateKey = `${year}-${month}-${day}`;
+            const data = workData[dateKey] || {};
+            const row = [
+                `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`,
+                data.inTime || '',
+                data.outTime || '',
+                data.movementOut || '',
+                data.movementIn || '',
+                `"${data.teamMembers || ''}"`,
+                `"${data.workLocation || ''}"`,
+                data.vehicleNumber || '',
+                data.km || '',
+                data.specialDays || '',
+                data.leaveStatus || 'No',
+                data.leaveReason || '',
+                `"${data.leaveReasonText || data.customReasonDetails || ''}"`,
+            ];
+            csvContent += row.join(',') + '\r\n';
+        }
+        
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Work_Report_${year}_${month + 1}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const exportAsScreenshot = async () => {
+        const el = document.getElementById('dashboard-view');
+        loadingSpinner.style.display = 'flex';
+        try {
+            const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: document.documentElement.classList.contains('dark') ? '#111827' : '#f8f9fa' });
+            const link = document.createElement('a');
+            link.download = `Dashboard_Screenshot_${currentDate.getFullYear()}_${currentDate.getMonth() + 1}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        } catch(err) {
+            console.error('Screenshot failed:', err);
+            alert('Sorry, there was an error generating the screenshot.');
+        } finally {
+            loadingSpinner.style.display = 'none';
+        }
+    };
+
+
 
     // MAIN RENDER/INITIALIZATION FUNCTIONS
     const renderAll = () => {
@@ -1979,15 +2552,27 @@ document.addEventListener('DOMContentLoaded', () => {
     // -----------------------------------------------------------------------------
     
     window.addEventListener('scroll', () => {
-        const isAtTop = window.scrollY < 100;
-        const isAtBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 100;
-        scrollUpButton.classList.toggle('hidden', isAtTop);
-        floatingDatePickerBtn.classList.toggle('hidden', isAtTop);
-        scrollDownButton.classList.toggle('hidden', isAtBottom);
+        if (!reportView.classList.contains('hidden')) {
+            const isAtTop = window.scrollY < 100;
+            const isAtBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 100;
+            scrollUpButton.classList.toggle('hidden', isAtTop);
+            floatingDatePickerBtn.classList.toggle('hidden', isAtTop);
+            scrollDownButton.classList.toggle('hidden', isAtBottom);
+        }
     });
     scrollUpButton.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
     scrollDownButton.addEventListener('click', () => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }));
     floatingDatePickerBtn.addEventListener('click', showDatePickerModal);
+
+    // New navigation bindings
+    backToDashboardBtn.addEventListener('click', showDashboardView);
+    viewFullReportBtn.addEventListener('click', showReportView);
+
+    // New dashboard FAB bindings
+    document.getElementById('quick-export-pdf').addEventListener('click', () => showExportPreview(currentDate.getFullYear(), currentDate.getMonth(), 'pdf'));
+    document.getElementById('quick-export-csv').addEventListener('click', () => exportAsCSV(currentDate.getFullYear(), currentDate.getMonth()));
+    document.getElementById('quick-export-png').addEventListener('click', exportAsScreenshot);
+
 
     const firebaseConfig = {
       apiKey: "AIzaSyDzaAqT7NRAyQhTNDh8GsMKlTKNmttzIWo",
@@ -2021,7 +2606,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (currentUser && currentUser.emailVerified) {
             user = currentUser;
-            dashboardPage.style.display = 'flex';
+            dashboardPageContainer.style.display = 'flex';
             signinPage.classList.add('hidden');
 
             renderDashboardNav(user);
@@ -2060,6 +2645,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = doc.data();
                 workData = data?.workData || {};
                 reminders = data?.reminders || [];
+                showReportView(); // Default to report view on login
                 initializeApp();
             }, err => {
                 console.error("Firestore snapshot error: ", err);
@@ -2074,7 +2660,7 @@ document.addEventListener('DOMContentLoaded', () => {
             workData = JSON.parse(localStorage.getItem('workData') || '{}');
             reminders = JSON.parse(localStorage.getItem('reminders') || '[]');
             
-            dashboardPage.style.display = 'none';
+            dashboardPageContainer.style.display = 'none';
             signinPage.classList.remove('hidden');
 
             addSigninEventListeners();
