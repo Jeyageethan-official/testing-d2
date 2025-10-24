@@ -1,2480 +1,710 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Work Report</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg stroke='%233b82f6' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'%3E%3Cpath d='M25,15 h50 a5,5 0 0 1 5,5 v60 a5,5 0 0 1 -5,5 h-50 a5,5 0 0 1 -5,-5 v-60 a5,5 0 0 1 5,-5 z' /%3E%3Cpath d='M35 35 H 75' /%3E%3Cpath d='M35 50 H 75' /%3E%3Cpath d='M35 65 H 60' /%3E%3C/g%3E%3C/svg%3E">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Shopping Dashboard</title>
+
+    <!-- 
+      HOW TO CONNECT:
+      1. Paste the generated code into an empty HTML file (e.g., index.html).
+      2. Fill in your Firebase project configuration in the `firebaseConfig` object below.
+      3. Open the HTML file in a web browser.
+    -->
+
+    <!-- 
+      DEVELOPER QA CHECKLIST:
+      [ ] Insert firebaseConfig below.
+      [ ] Enable Firestore, Storage, and Authentication (Email/Password, Google) in Firebase console.
+      [ ] Set Firestore & Storage security rules as per the examples.
+      [ ] Add Google Vision & Translate API keys to enable real OCR/translation (optional).
+      [ ] Test user sign-up, sign-in (Email & Google), and sign-out.
+      [ ] Test Firestore CRUD: add, edit, delete shopping items.
+      [ ] Test Backup: verify file in Storage and metadata in Firestore.
+      [ ] Test Restore: verify data is overwritten correctly.
+      [ ] Test Offline Mode: disconnect internet, add items, reconnect, and verify sync.
+      [ ] Test OCR in MOCK_MODE=true and MOCK_MODE=false (if keys are set).
+      [ ] Test Voice Input in a supported browser (e.g., Chrome).
+      [ ] Test all export options (JSON, CSV, PDF, PNG).
+      [ ] Test settings page functionality (profile update, theme change).
+    -->
+
+    <!-- 
+      EXAMPLE FIRESTORE SECURITY RULES:
+      rules_version = '2';
+      service cloud.firestore {
+        match /databases/{database}/documents {
+          match /users/{userId}/{doc=**} {
+            allow read, write: if request.auth != null && request.auth.uid == userId;
+          }
+        }
+      }
+    -->
+
+    <!-- 
+      EXAMPLE STORAGE SECURITY RULES:
+      rules_version = '2';
+      service firebase.storage {
+        match /b/{bucket}/o {
+          // Allow users to manage their own backups and profile pictures
+          match /users/{userId}/{allPaths=**} {
+            allow read, write: if request.auth != null && request.auth.uid == userId;
+          }
+        }
+      }
+    -->
+    
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class', // enable dark mode based on class
-        }
-    </script>
-    
-    <!-- Firebase Libraries -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-    
-    <!-- PDF/Image Export Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-    <!-- Chart.js for Dashboard -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- Leaflet.js for Maps -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-
+    <!-- Custom CSS for Glassmorphism and animations -->
     <style>
-        :root {
-            --bg-light: #f8f9fa; /* A clean, near-white */
-            --bg-dark-start: #111827;
-            --bg-dark-end: #000000;
-            --slt-blue: #3b82f6; /* A corporate blue */
+        .glass {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            transition: background 0.3s ease;
-            overflow-x: hidden;
+        .dark .glass {
+            background: rgba(26, 32, 44, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        /* Smoother theme transitions */
-        body, .bg-white, .bg-gray-50, .dark .dark\:bg-gray-900, .dark .dark\:bg-gray-950, .premium-input, .premium-select {
-            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        .sidebar {
+            transition: transform 0.3s ease-in-out;
         }
-        html:not(.dark) body {
-            background-color: var(--bg-light);
+        .sidebar-open {
+            transform: translateX(0);
         }
-        html.dark body {
-            background: linear-gradient(135deg, var(--bg-dark-start) 0%, var(--bg-dark-end) 100%);
+        .sidebar-closed {
+            transform: translateX(-100%);
         }
-
-        /* Webkit scrollbar styling */
+         /* Custom scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
         }
         ::-webkit-scrollbar-track {
             background: #f1f1f1;
         }
+        .dark ::-webkit-scrollbar-track {
+            background: #2d3748;
+        }
         ::-webkit-scrollbar-thumb {
-            background: #c3cfe2;
-            border-radius: 10px;
+            background: #888;
+            border-radius: 4px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #a8b8d0;
+            background: #555;
         }
-        html.dark ::-webkit-scrollbar-track {
-            background: #111827;
-        }
-        html.dark ::-webkit-scrollbar-thumb {
-            background: #374151;
-        }
-        html.dark ::-webkit-scrollbar-thumb:hover {
-            background: #4b5563;
-        }
-
-        /* Page fade-in animation */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .fade-in {
-            animation: fadeIn 0.5s ease-out forwards;
-        }
-
-        /* Modal animations */
-        @keyframes modal-in {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        .modal-content-animate {
-            animation: modal-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        .modal-bg-animate {
-            animation: fadeIn 0.3s ease-out forwards;
-        }
-
-        /* Premium input focus glow */
-        .premium-input:focus,
-        .premium-select:focus {
-             border-color: var(--slt-blue);
-             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-             outline: none;
-        }
-        html.dark .premium-input:focus,
-        html.dark .premium-select:focus {
-             border-color: #60a5fa; /* blue-400 */
-             box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
-        }
-
-        /* Hide default time/date input icons */
-        input[type="time"]::-webkit-calendar-picker-indicator,
-        input[type="date"]::-webkit-calendar-picker-indicator {
-            display: none;
-        }
-        
-        /* Custom select arrow */
-        .premium-select {
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-            background-position: right 0.5rem center;
-            background-repeat: no-repeat;
-            background-size: 1.5em 1.5em;
-            padding-right: 2.5rem;
-        }
-        html.dark .premium-select {
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-        }
-        .hidden {
-            display: none;
-        }
-
-        /* New Corporate Doodle Loading Animation */
-        .loader-content {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1rem;
-        }
-        .animated-logo-svg {
-            width: 80px;
-            height: 80px;
-        }
-        .animated-logo-svg .draw-stroke {
-            stroke-dasharray: 500;
-            stroke-dashoffset: 500;
-            animation: draw 0.3s ease-out forwards;
-        }
-        html.dark .animated-logo-svg .logo-stroke-color {
-             stroke: #60a5fa;
-        }
-        html.dark .animated-logo-svg .logo-fill-color {
-             fill: #60a5fa;
-        }
-        
-        /* Animation Sequence Delays */
-        .animated-logo-svg .doc-outline { animation-delay: 0s; }
-        .animated-logo-svg .doc-corner { animation-delay: 0.05s; }
-        .animated-logo-svg .text-line1 { animation-delay: 0.1s; }
-        .animated-logo-svg .text-line2 { animation-delay: 0.15s; }
-        .animated-logo-svg .text-line3 { animation-delay: 0.2s; }
-        .animated-logo-svg .checkmark { animation-delay: 0.25s; }
-        
-        @keyframes draw {
-            to {
-                stroke-dashoffset: 0;
-            }
-        }
-        .loader-text {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #4b5563; /* gray-600 */
-            opacity: 0;
-            animation: fadeIn 0.2s ease-out 0.3s forwards;
-        }
-        html.dark .loader-text {
-             color: #d1d5db; /* gray-300 */
-        }
-
-        .break-words {
-            word-break: break-word;
-        }
-
-        /* Kebab menu styles */
-        .day-card-menu-dropdown {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            z-index: 10;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            padding: 6px;
-            min-width: 150px;
-            animation: fadeIn 0.1s ease-out;
-            border: 1px solid #e5e7eb;
-        }
-         html.dark .day-card-menu-dropdown {
-            background: #1f2937;
-            border-color: #374151;
-        }
-        .day-card-menu-item {
-             padding: 8px 12px;
-            cursor: pointer;
-            border-radius: 4px;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: background-color: 0.2s;
-        }
-        .day-card-menu-item:hover {
-             background: #f1f5f9;
-        }
-        html.dark .day-card-menu-item:hover {
-             background: #374151;
-        }
-
-        /* AI Assistant Button Pulse */
-        @keyframes pulse-glow {
-            0%, 100% {
-                box-shadow: 0 0 0 0 rgba(96, 165, 250, 0.7);
-            }
-            50% {
-                box-shadow: 0 0 0 6px rgba(96, 165, 250, 0);
-            }
-        }
-        .ai-btn-pulse {
-            animation: pulse-glow 2.5s infinite;
-        }
-
-        /* Small inline loader for AI modal */
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .loader-small {
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #3498db;
-            border-radius: 50%;
-            width: 16px;
-            height: 16px;
-            animation: spin 1s linear infinite;
-        }
-        html.dark .loader-small {
-            border-top-color: #60a5fa;
-        }
-
-        /* AI Voice Input Button */
-        @keyframes pulse-mic {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.1); opacity: 0.8; }
-        }
-        .voice-btn-listening svg {
-            color: #ef4444; /* red-500 */
-            animation: pulse-mic 1.5s infinite ease-in-out;
-        }
-        html.dark .voice-btn-listening svg {
-            color: #f87171; /* red-400 */
-        }
-        
-        /* Custom iOS-style Time Picker */
-        @keyframes slide-up {
-            from { transform: translateY(100%); }
-            to { transform: translateY(0); }
-        }
-        .time-picker-content {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: #f9f9f9;
-            border-top-left-radius: 20px;
-            border-top-right-radius: 20px;
-            padding: 16px;
-            padding-bottom: calc(16px + env(safe-area-inset-bottom)); /* For iPhone X+ */
-            animation: slide-up 0.3s ease-out;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
-            max-width: 420px;
-            margin: 0 auto;
-        }
-        html.dark .time-picker-content {
-            background-color: #1c1c1e;
-        }
-        .time-picker-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-bottom: 16px;
-            border-bottom: 1px solid #dcdcdc;
-        }
-        html.dark .time-picker-header {
-            border-bottom-color: #3a3a3c;
-        }
-        .time-picker-wheels {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 200px;
-            position: relative;
-            overflow: hidden;
-            margin: 16px 0;
-        }
-        .time-picker-selection-indicator {
-            position: absolute;
-            top: 50%;
-            left: 16px;
-            right: 16px;
-            height: 40px;
-            transform: translateY(-50%);
-            background-color: rgba(0, 0, 0, 0.05);
-            border-top: 1px solid #d1d1d6;
-            border-bottom: 1px solid #d1d1d6;
-            border-radius: 8px;
-            pointer-events: none;
-            z-index: 1;
-        }
-        html.dark .time-picker-selection-indicator {
-            background-color: rgba(255, 255, 255, 0.1);
-            border-color: #444;
-        }
-        .time-picker-wheel {
-            flex: 1;
-            height: 100%;
-            overflow-y: scroll;
-            scrollbar-width: none; /* Firefox */
-        }
-        .time-picker-wheel::-webkit-scrollbar {
-            display: none; /* Webkit */
-        }
-        .time-picker-wheel-col {
-            padding: 0;
-            margin: 0;
-            list-style: none;
-        }
-        .time-picker-item {
-            height: 40px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 22px;
-            font-weight: 400;
-        }
-        .time-picker-spacer {
-            font-size: 22px;
-            font-weight: 500;
-            padding: 0 10px;
-            align-self: center;
-        }
-
-        /* ========== NEW APPLE-STYLE DESIGN STYLES ========== */
-
-        /* Sign-in Page */
-        #signin-page {
-            position: fixed;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #e0f7fa 0%, #ffffff 100%);
-            transition: opacity 0.5s ease-out;
-            opacity: 1;
-            z-index: 100;
-        }
-        html.dark #signin-page {
-            background: linear-gradient(135deg, #0f172a 0%, #000000 100%);
-        }
-        #signin-page.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-        .signin-card {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 20px;
-            padding: 2.5rem;
-            width: 100%;
-            max-width: 420px;
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
-            animation: fadeIn 0.6s ease-out;
-        }
-        html.dark .signin-card {
-            background: rgba(23, 31, 44, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
-        }
-        .signin-input {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border-radius: 0.5rem;
-            border: 1px solid #d1d5db; /* gray-300 */
-            background-color: #f9fafb; /* gray-50 */
-            transition: all 0.2s ease;
-            font-size: 1rem;
-        }
-        html.dark .signin-input {
-            border-color: #4b5563; /* gray-600 */
-            background-color: #1f2937; /* gray-800 */
-            color: #e5e7eb; /* gray-200 */
-        }
-        .signin-input:focus {
-            border-color: #3b82f6; /* blue-500 */
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-            outline: none;
-        }
-        .signin-button-glow {
-            box-shadow: 0 0 15px 0 rgba(59, 130, 246, 0.4);
-        }
-
-        /* Dashboard & Report Pages */
-        #report-page, #dashboard-page {
-            display: none;
-            /* Switched to block for simpler layout management */
-        }
-        #main-nav {
-            position: sticky;
-            top: 0;
-            z-index: 30;
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid #e5e7eb; /* gray-200 */
-            padding: 0.75rem 2rem;
-        }
-        html.dark #main-nav {
-            background: rgba(17, 24, 39, 0.8); /* gray-900 */
-            border-bottom-color: #374151; /* gray-700 */
-        }
-        #user-menu-dropdown {
-            position: absolute;
-            top: calc(100% + 0.5rem);
-            right: 0;
-            background: white;
-            border-radius: 0.75rem;
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
-            border: 1px solid #e5e7eb;
-            width: 220px;
-            z-index: 40;
-            animation: fadeIn 0.15s ease-out;
-        }
-        html.dark #user-menu-dropdown {
-            background: #1f2937; /* gray-800 */
-            border-color: #374151; /* gray-700 */
-        }
-        #main-content {
-            flex-grow: 1;
-        }
-        #app-container {
-            max-width: none;
-            margin: 0;
-            padding: 0;
-        }
-
-        /* Sidebar Menu */
-        .sidebar-backdrop {
-            position: fixed;
-            inset: 0;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 45;
-            transition: opacity 0.3s ease-out;
-            opacity: 0;
-        }
-        .sidebar-menu {
-            position: fixed;
-            top: 0;
-            bottom: 0;
-            right: 0;
-            width: 100%;
-            max-width: 320px;
-            background-color: white;
-            z-index: 50;
-            box-shadow: -10px 0 25px rgba(0,0,0,0.1);
-            transform: translateX(100%);
-            transition: transform 0.3s ease-in-out;
-            display: flex;
-            flex-direction: column;
-        }
-        html.dark .sidebar-menu {
-            background-color: #111827; /* gray-900 */
-        }
-        .sidebar-menu.open {
-            transform: translateX(0);
-        }
-        .sidebar-header {
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid #e5e7eb; /* gray-200 */
-        }
-        html.dark .sidebar-header {
-            border-bottom-color: #374151; /* gray-700 */
-        }
-        .sidebar-content {
-            padding: 1rem;
-            flex-grow: 1;
-            overflow-y: auto;
-        }
-        .sidebar-item {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 0.75rem 1rem;
-            border-radius: 0.5rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            color: #374151; /* gray-700 */
-        }
-        html.dark .sidebar-item {
-            color: #d1d5db; /* gray-300 */
-        }
-        .sidebar-item:hover {
-            background-color: #f3f4f6; /* gray-100 */
-        }
-        html.dark .sidebar-item:hover {
-            background-color: #1f2937; /* gray-800 */
-        }
-        
-        /* ========== DASHBOARD WIDGET STYLES ========== */
-        .widget-card {
-            background: rgba(255, 255, 255, 0.6);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-radius: 1.25rem; /* rounded-2xl */
-            padding: 1.25rem; /* p-5 */
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            min-height: 180px;
-        }
-        .widget-card:hover {
-            transform: scale(1.02);
-            box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.1);
-        }
-        html.dark .widget-card {
-             background: rgba(31, 41, 55, 0.6);
-             border-color: rgba(255, 255, 255, 0.1);
-        }
-        .widget-title {
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: #4b5563; /* gray-600 */
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        html.dark .widget-title {
-            color: #9ca3af; /* gray-400 */
-        }
-        
-        /* Heatmap styles */
-        .heatmap-day {
-            transition: all 0.2s ease;
-            position: relative;
-        }
-        .heatmap-present { background-color: rgba(34, 197, 94, 0.7); }
-        .heatmap-leave-own { background-color: rgba(239, 68, 68, 0.7); } /* Red */
-        .heatmap-leave-other { background-color: rgba(251, 191, 36, 0.7); } /* Yellow */
-        .heatmap-weekend { background-color: #e5e7eb; }
-        html.dark .heatmap-weekend { background-color: #374151; }
-        
     </style>
 </head>
-<body class="bg-gray-50 dark:bg-gray-950">
-    <!-- Sign-In Page -->
-    <div id="signin-page" class="fixed inset-0 flex items-center justify-center p-4">
-        <div class="signin-card">
-            <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold text-gray-800 dark:text-white">Welcome Back</h1>
-                <p class="text-gray-600 dark:text-gray-400 mt-2">Sign in to access your Work Report</p>
-            </div>
-            <form id="signin-form" autocomplete="on" class="space-y-6">
-                <div>
-                    <input id="auth-email" type="email" placeholder="Email" autocomplete="email" required class="signin-input" />
-                </div>
-                <div>
-                    <input id="auth-password" type="password" placeholder="Password" autocomplete="current-password" required class="signin-input" />
-                </div>
-                <p id="signin-error" class="text-red-500 text-sm h-4 text-center"></p>
-                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all duration-300 transform hover:-translate-y-0.5 signin-button-glow">
-                    Sign In
-                </button>
-                 <div class="relative my-4"><div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-300 dark:border-gray-700"></div></div><div class="relative flex justify-center text-sm"><span class="px-2 bg-white/0 backdrop-blur-sm text-gray-500">Or</span></div></div>
-                 <button type="button" id="google-signin-btn" class="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-lg font-semibold text-sm transition-all duration-200 bg-white text-gray-800 border border-gray-300 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 dark:hover:bg-gray-700">
-                    <svg class="w-5 h-5" viewBox="0 0 48 48"><path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.42-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path><path fill="none" d="M0 0h48v48H0z"></path></svg>
-                    Sign in with Google
-                </button>
-                 <p class="text-center text-sm text-gray-600 dark:text-gray-400 pt-4">
-                    Don’t have an account? 
-                    <button type="button" id="show-signup-btn" class="font-semibold text-blue-600 hover:underline dark:text-blue-400">Sign up</button>
-                </p>
-            </form>
-        </div>
-    </div>
-    
-    <!-- Main Application Wrapper -->
-    <div id="app-wrapper">
-        <!-- Top Navigation -->
-        <nav id="main-nav" class="flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <!-- Logo -->
-                <div class="flex items-center gap-2 text-xl font-bold text-gray-800 dark:text-white">
-                    <svg class="w-8 h-8 text-blue-600" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                         <g stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none">
-                            <path d="M25,15 h50 a5,5 0 0 1 5,5 v60 a5,5 0 0 1 -5,5 h-50 a5,5 0 0 1 -5,-5 v-60 a5,5 0 0 1 5,-5 z" />
-                            <path d="M35 35 H 75" />
-                            <path d="M35 50 H 75" />
-                            <path d="M35 65 H 60" />
-                        </g>
-                    </svg>
-                    <span id="page-title">Work Report</span>
-                </div>
-            </div>
-            <div id="auth-area" class="relative">
-                <!-- User menu and sidebar button will be rendered here by JS -->
-            </div>
-        </nav>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans">
+    <div id="root"></div>
 
-        <!-- Report Page -->
-        <div id="report-page">
-             <!-- BACK BUTTON NAVIGATION START -->
-            <div class="px-4 sm:px-6 lg:px-8 pt-6">
-                <button id="back-to-dashboard-btn" class="flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-                    Back to Dashboard
-                </button>
-            </div>
-            <!-- BACK BUTTON NAVIGATION END -->
-            <main id="main-content" class="p-4 sm:p-6 lg:p-8 pt-4">
-                <div id="app-container" class="relative text-gray-800 dark:text-gray-200 opacity-0 transition-opacity duration-500">
-                    <header id="header-container"></header>
-                    <main class="mt-8">
-                        <div id="daysContainer" class="space-y-8"></div>
-                        <div id="summary-container"></div>
-                    </main>
-                </div>
-            </main>
-        </div>
+    <!-- External Libraries CDNs -->
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX transpilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Tesseract.js for OCR fallback -->
+    <script src='https://unpkg.com/tesseract.js@2.1.0/dist/tesseract.min.js'></script>
+    <!-- html2canvas & jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+
+    <!-- Main React Application Logic -->
+    <script type="text/babel" data-type="module">
+        // ===================================================================================
+        // VIRTUAL FILE: index.tsx (Main Entry Point)
+        // ===================================================================================
         
-        <!-- Dashboard Page -->
-        <div id="dashboard-page" class="p-4 sm:p-6 lg:p-8">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">📊 Dashboard</h2>
-                <button id="view-full-report-btn" class="bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition">View Full Report</button>
-            </div>
-    
-            <!-- DASHBOARD START -->
-            <div id="dashboard-widgets" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                <!-- Widgets Grid -->
-                <div class="widget-card md:col-span-2 lg:col-span-3 xl:col-span-2">
-                    <h3 class="widget-title mb-4">Attendance Heat Map</h3>
-                    <div id="heatmap-container"></div>
-                </div>
-                <div class="widget-card">
-                    <h3 class="widget-title mb-4">Smart Leave Pattern Analyzer</h3>
-                    <div id="leave-analyzer-container" class="text-sm space-y-3"></div>
-                </div>
-                <div class="widget-card">
-                    <h3 class="widget-title mb-4">Upcoming Events (Next 7 Days)</h3>
-                    <div id="events-container" class="text-sm space-y-2"></div>
-                </div>
-                <div class="widget-card md:col-span-2 lg:col-span-1">
-                    <h3 class="widget-title mb-4">Own Leave Reason Summary</h3>
-                    <canvas id="leave-reason-chart"></canvas>
-                </div>
-                <div class="widget-card md:col-span-2">
-                    <h3 class="widget-title mb-4">Work Location History</h3>
-                    <div id="location-map" class="h-full w-full rounded-lg min-h-[220px] bg-gray-200 dark:bg-gray-700"></div>
-                </div>
-                 <div class="widget-card">
-                    <h3 class="widget-title mb-4">Quick Export</h3>
-                    <div class="flex flex-col gap-3 h-full justify-center">
-                        <button id="export-pdf-shortcut" class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all bg-red-500 hover:bg-red-600 text-white">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
-                            Export PDF
-                        </button>
-                        <button id="export-excel-shortcut" class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all bg-green-500 hover:bg-green-600 text-white">
-                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
-                           Export Excel (CSV)
-                        </button>
-                        <button id="export-screenshot-shortcut" class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all bg-blue-500 hover:bg-blue-600 text-white">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
-                            Screenshot
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <!-- DASHBOARD END -->
-        </div>
+        // --- Constants and Configuration ---
+        const MOCK_MODE = true; // Set to false to enable real API calls
+        const GOOGLE_VISION_KEY = ''; // Optional: Add your Google Cloud Vision API key
+        const GOOGLE_TRANSLATE_KEY = ''; // Optional: Add your Google Cloud Translate API key
 
-        <!-- Scroll Buttons -->
-        <div class="fixed bottom-6 right-6 flex flex-col gap-3 z-40">
-            <button id="floating-date-picker-btn" title="Go to Date" class="w-12 h-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-200 rounded-full shadow-lg flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 hover:text-blue-600 transition-all duration-200 hidden">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            </button>
-            <button id="scrollUpButton" class="w-12 h-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-200 rounded-full shadow-lg flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 hover:text-blue-600 transition-all duration-200 hidden">↑</button>
-            <button id="scrollDownButton" class="w-12 h-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-200 rounded-full shadow-lg flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 hover:text-blue-600 transition-all duration-200">↓</button>
-        </div>
-    </div>
-
-
-    <!-- Sidebar Portal -->
-    <div id="sidebar-root"></div>
-    
-    <!-- Modals Portal -->
-    <div id="modal-root"></div>
-
-    <!-- Loading Spinner -->
-    <div id="loading-spinner" class="fixed inset-0 bg-white/80 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300">
-        <div class="loader-content">
-            <svg class="animated-logo-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <g class="logo-stroke-color" stroke="var(--slt-blue)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none">
-                    <!-- Document Outline -->
-                    <path class="draw-stroke doc-outline" d="M25,15 h50 a5,5 0 0 1 5,5 v60 a5,5 0 0 1 -5,5 h-50 a5,5 0 0 1 -5,-5 v-60 a5,5 0 0 1 5,-5 z" />
-                    <!-- Text Lines -->
-                    <path class="draw-stroke text-line1" d="M35 35 H 75" />
-                    <path class="draw-stroke text-line2" d="M35 48 H 75" />
-                    <path class="draw-stroke text-line3" d="M35 61 H 60" />
-                    <!-- Checkmark -->
-                    <path class="draw-stroke checkmark" d="M40 75 L50 82 L70 65" />
-                </g>
-            </svg>
-            <span class="loader-text dark:text-gray-300">Work Report</span>
-        </div>
-    </div>
-
-
-<script>
-// ===================================================================================
-//
-//                          WORK REPORT - VANILLA JS APP
-//
-// ===================================================================================
-
-const applyTheme = (theme) => {
-    if (theme === 'dark') {
-        document.documentElement.classList.add('dark');
-        localStorage.setItem('theme', 'dark');
-    } else {
-        document.documentElement.classList.remove('dark');
-        localStorage.setItem('theme', 'light');
-    }
-}
-
-const initTheme = () => {
-    const savedTheme = localStorage.getItem('theme');
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (savedTheme) {
-        applyTheme(savedTheme);
-    } else if (systemPrefersDark) {
-        applyTheme('dark');
-    } else {
-        applyTheme('light');
-    }
-}
-
-initTheme();
-
-document.addEventListener('DOMContentLoaded', () => {
-
-    // -----------------------------------------------------------------------------
-    // STATE MANAGEMENT & GLOBAL VARIABLES
-    // -----------------------------------------------------------------------------
-    let user = null;
-    let currentDate = new Date();
-    let workData = {};
-    let reminders = [];
-    let isInitialLoad = true;
-    
-    // Chart and Map instances
-    let leaveReasonChartInstance = null;
-    let leafletMapInstance = null;
-    
-    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    const reminderCategories = ['Wedding', 'Nobility Ceremony', 'Birthday', 'House Warming Ceremony', 'Other'];
-    
-    // DOM Elements
-    const signinPage = document.getElementById('signin-page');
-    const appWrapper = document.getElementById('app-wrapper');
-    const reportPage = document.getElementById('report-page');
-    const dashboardPage = document.getElementById('dashboard-page');
-    const authArea = document.getElementById('auth-area');
-    const pageTitle = document.getElementById('page-title');
-    const headerContainer = document.getElementById('header-container');
-    const daysContainer = document.getElementById('daysContainer');
-    const summaryContainer = document.getElementById('summary-container');
-    const modalRoot = document.getElementById('modal-root');
-    const sidebarRoot = document.getElementById('sidebar-root');
-    const loadingSpinner = document.getElementById('loading-spinner');
-    const appContainer = document.getElementById('app-container');
-    const scrollUpButton = document.getElementById('scrollUpButton');
-    const scrollDownButton = document.getElementById('scrollDownButton');
-    const floatingDatePickerBtn = document.getElementById('floating-date-picker-btn');
-
-    // BACK BUTTON NAVIGATION START
-    const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
-    const viewFullReportBtn = document.getElementById('view-full-report-btn');
-    // BACK BUTTON NAVIGATION END
-
-
-    // -----------------------------------------------------------------------------
-    // ALL FUNCTION DEFINITIONS
-    // -----------------------------------------------------------------------------
-
-    // PAGE NAVIGATION
-    const showPage = (pageId) => {
-        [reportPage, dashboardPage].forEach(page => {
-            if (page.id === pageId) {
-                page.style.display = 'block';
-                page.classList.add('fade-in');
-            } else {
-                page.style.display = 'none';
-            }
-        });
-
-        if(pageId === 'dashboard-page') {
-             pageTitle.textContent = "Dashboard";
-             renderDashboard();
-        } else {
-             pageTitle.textContent = "Work Report";
-        }
-
-        signinPage.style.display = 'none';
-        appWrapper.style.display = 'block';
-    };
-
-    // UTILITY & HELPER FUNCTIONS
-    const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
-    const isWeekend = (year, month, day) => {
-        const d = new Date(year, month, day).getDay();
-        return d === 0 || d === 6;
-    };
-    const calculateHoursDifference = (inTime, outTime) => {
-        if (!inTime || !outTime) return 0;
-        const [inH, inM] = inTime.split(':').map(Number);
-        const [outH, outM] = outTime.split(':').map(Number);
-        const inMinutes = inH * 60 + inM;
-        const outMinutes = outH * 60 + outM;
-        if (outMinutes < inMinutes) return 0;
-        return (outMinutes - inMinutes) / 60;
-    };
-     const getMonthStats = (year, month) => {
-        const monthPrefix = `${year}-${month}`;
-        let regularLeaves = 0, poyaPublicLeaves = 0, weekendLeaveDays = 0, ownLeaves = 0;
-        let totalOtHours = 0;
-        let workingDays = 0;
-
-        Object.keys(workData).forEach(key => {
-            if (key.startsWith(monthPrefix)) {
-                const data = workData[key];
-                const day = parseInt(key.split('-')[2], 10);
-                const isDayWeekend = isWeekend(year, month, day);
-                const isSpecial = data.specialDays === "Poya Day" || data.specialDays === "Public Holiday";
-                const workingHours = calculateHoursDifference(data.inTime, data.outTime);
-
-                if (workingHours > 0) {
-                    workingDays++;
-                    let ot = 0;
-                    if (isSpecial) ot = workingHours;
-                    else if (isDayWeekend) ot = workingHours;
-                    else if (workingHours > 9) ot = workingHours - 9;
-                    totalOtHours += ot;
-                }
-               
-                if (data.leaveStatus === "Yes") {
-                    if (data.leaveReason === "Own Leave") ownLeaves++;
-                    if (data.leaveReason === "Own Leave" || (data.leaveReason === "Custom Reason" && !isDayWeekend && !isSpecial)) regularLeaves++;
-                    else if (isSpecial || data.leaveReason === "Poya Day" || data.leaveReason === "Public Holiday") poyaPublicLeaves++;
-                    if (isDayWeekend && data.leaveReason === "Normal Leave Day") weekendLeaveDays++;
-                } else if (isSpecial) {
-                    poyaPublicLeaves++;
-                }
-            }
-        });
-        const totalLeaves = regularLeaves + poyaPublicLeaves + weekendLeaveDays;
-
-        return { regularLeaves, poyaPublicLeaves, weekendLeaveDays, totalLeaves, totalOtHours, workingDays, ownLeaves };
-    };
-
-    // MODAL & SIDEBAR MANAGEMENT
-    const openModal = (modalHTML) => {
-        modalRoot.innerHTML = modalHTML;
-        modalRoot.querySelectorAll('[data-dismiss="modal"]').forEach(el => {
-            el.addEventListener('click', closeModal);
-        });
-    };
-    
-    const closeModal = () => {
-        modalRoot.innerHTML = '';
-    };
-
-    const closeSidebar = () => {
-        const sidebarMenu = sidebarRoot.querySelector('.sidebar-menu');
-        const backdrop = sidebarRoot.querySelector('.sidebar-backdrop');
-        
-        if (sidebarMenu) sidebarMenu.classList.remove('open');
-        if (backdrop) backdrop.style.opacity = '0';
-
-        document.body.style.overflow = '';
-        
-        setTimeout(() => {
-            sidebarRoot.innerHTML = '';
-        }, 300); // Match CSS transition duration
-    };
-
-    const openSidebar = () => {
-        const isDarkMode = document.documentElement.classList.contains('dark');
-        const themeIcon = isDarkMode 
-            ? `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>` 
-            : `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
-        const themeText = isDarkMode ? 'Light Mode' : 'Dark Mode';
-
-        sidebarRoot.innerHTML = `
-            <div class="sidebar-backdrop"></div>
-            <div class="sidebar-menu">
-                <div class="sidebar-header flex justify-between items-center">
-                    <h2 class="text-xl font-bold text-gray-800 dark:text-white">Menu</h2>
-                    <button id="sidebar-close-btn" class="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    </button>
-                </div>
-                <div class="sidebar-content">
-                    <nav class="flex flex-col gap-2">
-                        <a id="sidebar-ai-btn" class="sidebar-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/></svg><span>AI Assistant</span></a>
-                        <a id="sidebar-month-picker-btn" class="sidebar-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path><path d="M8 18h.01"></path><path d="M12 18h.01"></path><path d="M16 18h.01"></path></svg><span>Select Month</span></a>
-                        <a id="sidebar-date-picker-btn" class="sidebar-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><span>Go to Date</span></a>
-                        <a id="sidebar-reminder-btn" class="sidebar-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span>Reminders</span></a>
-                        <a id="sidebar-share-btn" class="sidebar-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg><span>Share & Export</span></a>
-                        <div class="my-2 border-t border-gray-200 dark:border-gray-700"></div>
-                        <a id="sidebar-theme-toggle-btn" class="sidebar-item">${themeIcon}<span>${themeText}</span></a>
-                    </nav>
-                </div>
-            </div>
-        `;
-
-        document.body.style.overflow = 'hidden';
-
-        // Add listeners after rendering
-        setTimeout(() => {
-            const sidebarMenu = sidebarRoot.querySelector('.sidebar-menu');
-            const backdrop = sidebarRoot.querySelector('.sidebar-backdrop');
-            if (sidebarMenu) sidebarMenu.classList.add('open');
-            if (backdrop) backdrop.style.opacity = '1';
-            
-            backdrop.addEventListener('click', closeSidebar);
-            sidebarRoot.querySelector('#sidebar-close-btn').addEventListener('click', closeSidebar);
-
-            sidebarRoot.querySelector('#sidebar-ai-btn').addEventListener('click', () => { showAiModal(); closeSidebar(); });
-            sidebarRoot.querySelector('#sidebar-month-picker-btn').addEventListener('click', () => { showMonthPickerModal(); closeSidebar(); });
-            sidebarRoot.querySelector('#sidebar-date-picker-btn').addEventListener('click', () => { showDatePickerModal(); closeSidebar(); });
-            sidebarRoot.querySelector('#sidebar-reminder-btn').addEventListener('click', () => { showReminderModal(); closeSidebar(); });
-            sidebarRoot.querySelector('#sidebar-share-btn').addEventListener('click', () => { showShareModal(); closeSidebar(); });
-            
-            sidebarRoot.querySelector('#sidebar-theme-toggle-btn').addEventListener('click', () => {
-                handleThemeToggle();
-                const newIsDarkMode = document.documentElement.classList.contains('dark');
-                const newIcon = newIsDarkMode 
-                    ? `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>` 
-                    : `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
-                const newText = newIsDarkMode ? 'Light Mode' : 'Dark Mode';
-                sidebarRoot.querySelector('#sidebar-theme-toggle-btn').innerHTML = `${newIcon}<span>${newText}</span>`;
-            });
-        }, 10);
-    };
-
-    const createModal = (title, content, id = '', maxWidth = 'max-w-md') => {
-        return `
-            <div id="${id}" class="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm flex justify-center items-center z-50 p-4 modal-bg-animate" data-dismiss="modal">
-                <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full ${maxWidth} transform transition-all modal-content-animate" onclick="event.stopPropagation()">
-                    <div class="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-800">
-                        <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">${title}</h2>
-                        <button data-dismiss="modal" class="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                        </button>
-                    </div>
-                    <div class="p-6 max-h-[70vh] overflow-y-auto">${content}</div>
-                </div>
-            </div>
-        `;
-    };
-    
-    const showInfoModal = (title, message) => {
-        const content = `<p class="text-gray-600 dark:text-gray-400 text-center">${message}</p>`;
-        openModal(createModal(title, content));
-    };
-
-    // COMPONENT RENDERING (as HTML strings)
-    const renderMainNav = (user) => {
-        const userInitial = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
-        authArea.innerHTML = `
-            <div class="flex items-center gap-4">
-                <button id="sidebar-open-btn" title="Open Menu" class="p-2 text-gray-600 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-                </button>
-                <div class="w-px h-6 bg-gray-200 dark:bg-gray-700 hidden sm:block"></div>
-                <button id="user-menu-btn" class="relative w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold text-lg">
-                    ${userInitial}
-                </button>
-            </div>
-            <div id="user-menu-dropdown" class="hidden">
-                <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                    <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">${user.displayName || 'User'}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${user.email}</p>
-                </div>
-                <div class="p-2">
-                    <button id="logout-btn" class="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                        <span>Logout</span>
-                    </button>
-                </div>
-            </div>
-        `;
-
-        const menuBtn = document.getElementById('user-menu-btn');
-        const dropdown = document.getElementById('user-menu-dropdown');
-        menuBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            dropdown.classList.toggle('hidden');
-        });
-        document.addEventListener('click', () => dropdown.classList.add('hidden'));
-        document.getElementById('logout-btn').addEventListener('click', showLogoutConfirmationModal);
-        document.getElementById('sidebar-open-btn').addEventListener('click', openSidebar);
-    }
-
-    const renderHeader = () => {
-        headerContainer.innerHTML = ``;
-    };
-    
-    const createDayCardHTML = (day) => {
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth();
-        const dateKey = `${year}-${month}-${day}`;
-        const dayData = workData[dateKey] || {};
-        const dayName = new Date(year, month, day).toLocaleDateString("en-US", { weekday: "long" });
-        const weekend = isWeekend(year, month, day);
-        const leaveReasonOptions = weekend
-            ? ["", "Poya Day", "Public Holiday", "Custom Reason", "Own Leave", "Normal Leave Day"]
-            : ["", "Poya Day", "Public Holiday", "Custom Reason", "Own Leave"];
-
-        const createInput = (label, field, type, placeholder = '', value = '') => {
-            const valueAttr = value ? `value="${value}"` : '';
-            let inputHTML;
-
-            if (type === 'time') {
-                inputHTML = `<input type="text" readonly placeholder="--:--" ${valueAttr} data-key="${dateKey}" data-field="${field}" class="w-full p-2 border border-gray-300 rounded-lg bg-gray-50/50 transition duration-200 premium-input dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200 dark:placeholder-gray-400 custom-time-input cursor-pointer" />`;
-            } else {
-                inputHTML = `<input type="${type}" placeholder="${placeholder}" ${valueAttr} data-key="${dateKey}" data-field="${field}" class="w-full p-2 border border-gray-300 rounded-lg bg-gray-50/50 transition duration-200 premium-input dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200 dark:placeholder-gray-400" />`;
-            }
-            
-            return `
-                <div class="flex flex-col">
-                    <label class="font-medium text-sm mb-1.5 text-gray-700 dark:text-gray-300">${label}</label>
-                    ${inputHTML}
-                </div>`;
+        // --- Firebase Configuration ---
+        // IMPORTANT: Replace with your Firebase project's configuration object.
+        const firebaseConfig = {
+          apiKey: "AIzaSyDzaAqT7NRAyQhTNDh8GsMKlTKNmttzIWo",
+          authDomain: "work-report-fe3da.firebaseapp.com",
+          projectId: "work-report-fe3da",
+          storageBucket: "work-report-fe3da.firebasestorage.app",
+          messagingSenderId: "879340317679",
+          appId: "1:879340317679:web:a28e2d3906bca3e927a41a",
+          measurementId: "G-ZR8RGLKB77"
         };
-
-        const createSelect = (label, field, options, value = '') => `
-            <div class="flex flex-col">
-                <label class="font-medium text-sm mb-1.5 text-gray-700 dark:text-gray-300">${label}</label>
-                <select data-key="${dateKey}" data-field="${field}" class="p-2 border border-gray-300 rounded-lg bg-gray-50/50 transition duration-200 premium-select dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-200">
-                    ${options.map(opt => `<option value="${opt}" ${opt === value ? 'selected' : ''}>${opt || "Select..."}</option>`).join('')}
-                </select>
-            </div>`;
-
-        return `
-            <div data-day="${day}" class="day-box bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-lg dark:shadow-black/20 border border-gray-200/50 dark:border-gray-800/50 border-b-4 border-b-blue-500 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
-                <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-200 dark:border-gray-800">
-                    <h3 class="text-lg font-semibold ${weekend ? 'text-red-500 dark:text-red-400' : 'text-gray-900 dark:text-gray-100'}">${dayName}, ${months[month]} ${day}, ${year}</h3>
-                    <div class="relative">
-                        <button class="day-card-menu-btn p-1 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-                        </button>
-                        <div class="day-card-menu-dropdown hidden">
-                            <div class="day-card-menu-item clear-all-btn">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 2.5a.5.5 0 0 0 0 1h1.841l1.643 3.594a.5.5 0 0 0 .445.306h10.122a.5.5 0 0 0 .445-.306l1.643-3.594H20.5a.5.5 0 0 0 0-1H2.5Z"/><path d="M5.625 7.5 7.5 20h9l1.875-12.5H5.625Z"/></svg>
-                                <span>Clear All</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="space-y-6">
-                    <!-- Time Tracking Section -->
-                    <div class="grid grid-cols-2 gap-6">
-                        <div class="space-y-4">
-                            ${createInput('In Time', 'inTime', 'time', '', dayData.inTime)}
-                            ${createInput('Out Time', 'outTime', 'time', '', dayData.outTime)}
-                        </div>
-                        <div class="space-y-4">
-                            ${createInput('Movement Out', 'movementOut', 'time', '', dayData.movementOut)}
-                            ${createInput('Movement In', 'movementIn', 'time', '', dayData.movementIn)}
-                        </div>
-                    </div>
-
-                    <!-- Work Details Section -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        ${createInput('Team Members', 'teamMembers', 'text', 'e.g., John, Jane', dayData.teamMembers)}
-                        ${createInput('Work Location', 'workLocation', 'text', 'e.g., Office', dayData.workLocation)}
-                        ${createInput('Vehicle Number', 'vehicleNumber', 'text', 'e.g., ABC-1234', dayData.vehicleNumber)}
-                        ${createInput('KM Reading', 'km', 'number', 'e.g., 50', dayData.km)}
-                    </div>
-
-                    <!-- Status & Leave Section -->
-                    <div class="pt-4 border-t border-gray-200 dark:border-gray-800 space-y-4">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            ${createSelect('Special Day', 'specialDays', ['', 'Poya Day', 'Public Holiday'], dayData.specialDays)}
-                            ${createSelect('Leave Status', 'leaveStatus', ['No', 'Yes'], dayData.leaveStatus || 'No')}
-                        </div>
-                        <div class="pl-4 border-l-2 border-blue-200 dark:border-blue-700 space-y-4 -ml-1">
-                            ${dayData.leaveStatus === 'Yes' ? createSelect('Leave Reason', 'leaveReason', leaveReasonOptions, dayData.leaveReason) : ''}
-                            ${(dayData.leaveStatus === 'Yes' && dayData.leaveReason === 'Custom Reason') ? createInput('Custom Reason Details', 'customReasonDetails', 'text', 'Specify reason', dayData.customReasonDetails) : ''}
-                            ${(dayData.leaveStatus === 'Yes' && dayData.leaveReason === 'Own Leave') ? createInput('Leave Reason Details', 'leaveReasonText', 'text', 'Specify details', dayData.leaveReasonText) : ''}
-                        </div>
-                    </div>
-                </div>
-            </div>`;
-    };
-
-    const renderDays = () => {
-        const daysInMonth = getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth());
-        daysContainer.innerHTML = Array.from({ length: daysInMonth }, (_, i) => createDayCardHTML(i + 1)).join('');
-        addDayCardEventListeners();
-    };
-
-    const renderSummary = () => {
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth();
-        const stats = getMonthStats(year, month);
         
-        summaryContainer.innerHTML = `
-            <div class="mt-8 p-6 bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-800/50">
-                <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Monthly Summary</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-gray-600 dark:text-gray-300">
-                    <p>Leave Days (Regular): <span class="font-semibold text-gray-800 dark:text-gray-100">${stats.regularLeaves}</span></p>
-                    <p>Leave Days (Poya/Public): <span class="font-semibold text-gray-800 dark:text-gray-100">${stats.poyaPublicLeaves}</span></p>
-                    <p>Leave Days (Weekend): <span class="font-semibold text-gray-800 dark:text-gray-100">${stats.weekendLeaveDays}</span></p>
-                    <div class="md:col-span-2 my-2 border-t border-gray-200 dark:border-gray-800"></div>
-                    <p class="md:col-span-2 text-lg font-bold text-blue-600 dark:text-blue-400">Total OT Hours: <span id="totalOtHours">${stats.totalOtHours.toFixed(2)}</span> hours</p>
-                </div>
-                <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row gap-4">
-                    <button id="backup-btn" class="w-full sm:w-auto flex-1 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-semibold px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-900 hover:bg-blue-100 dark:hover:bg-blue-950 transition">Backup Month Data</button>
-                    <label class="w-full sm:w-auto flex-1 bg-green-50 dark:bg-green-950/50 text-green-700 dark:text-green-300 font-semibold px-4 py-2 rounded-lg border border-green-200 dark:border-green-900 hover:bg-green-100 dark:hover:bg-green-950 transition text-center cursor-pointer">
-                        Restore Month Data
-                        <input type="file" id="restore-file-input" class="hidden" accept=".json" />
-                    </label>
-                    <button id="clear-month-btn" class="w-full sm:w-auto flex-1 bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 font-semibold px-4 py-2 rounded-lg border border-red-200 dark:border-red-900 hover:bg-red-100 dark:hover:bg-red-950 transition">Clear Month Data</button>
-                </div>
-            </div>`;
-        addSummaryEventListeners();
-    };
+        // --- React Imports ---
+        const {
+            useState,
+            useEffect,
+            createContext,
+            useContext,
+            useCallback,
+            useRef,
+            useMemo,
+        } = React;
 
-    // DATA HANDLING & STATE UPDATES
-    const updateWorkData = (dateKey, field, value) => {
-        workData[dateKey] = workData[dateKey] || {};
+        // --- Library Imports ---
+        const { jsPDF } = window.jspdf;
 
-        if (field === 'leaveStatus' && value !== 'Yes') {
-            delete workData[dateKey].leaveReason;
-            delete workData[dateKey].customReasonDetails;
-            delete workData[dateKey].leaveReasonText;
-        }
-        if (field === 'leaveReason' && value !== 'Custom Reason') delete workData[dateKey].customReasonDetails;
-        if (field === 'leaveReason' && value !== 'Own Leave') delete workData[dateKey].leaveReasonText;
+        // ===================================================================================
+        // VIRTUAL FILE: context/AppContext.tsx
+        // ===================================================================================
+        const AppContext = createContext(null);
 
-        if (value) {
-            workData[dateKey][field] = value;
-        } else {
-            delete workData[dateKey][field];
-        }
+        const AppProvider = ({ children }) => {
+            const [user, setUser] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [toasts, setToasts] = useState([]);
+            const [isSidebarOpen, setSidebarOpen] = useState(false);
+            const [theme, setTheme] = useState('auto');
+            const [isOffline, setIsOffline] = useState(!navigator.onLine);
+            const [syncQueue, setSyncQueue] = useState([]);
 
-        if (user) {
-            const userRef = db.collection("users").doc(user.uid);
-            const updatePayload = {};
-            const baseFieldPath = `workData.${dateKey}`;
-            updatePayload[`${baseFieldPath}.${field}`] = value ? value : firebase.firestore.FieldValue.delete();
-            if (field === 'leaveStatus' && value !== 'Yes') {
-                updatePayload[`${baseFieldPath}.leaveReason`] = firebase.firestore.FieldValue.delete();
-                updatePayload[`${baseFieldPath}.customReasonDetails`] = firebase.firestore.FieldValue.delete();
-                updatePayload[`${baseFieldPath}.leaveReasonText`] = firebase.firestore.FieldValue.delete();
-            }
-            if (field === 'leaveReason' && value !== 'Custom Reason') updatePayload[`${baseFieldPath}.customReasonDetails`] = firebase.firestore.FieldValue.delete();
-            if (field === 'leaveReason' && value !== 'Own Leave') updatePayload[`${baseFieldPath}.leaveReasonText`] = firebase.firestore.FieldValue.delete();
-            userRef.update(updatePayload).catch(err => console.error("Firestore update error:", err));
-        } else {
-            saveLocalData();
-        }
-
-        if (field === 'leaveStatus' || field === 'leaveReason') {
-            const day = dateKey.split('-')[2];
-            const dayBox = daysContainer.querySelector(`.day-box[data-day="${day}"]`);
-            if (dayBox) {
-                const newDayCardHTML = createDayCardHTML(day);
-                dayBox.outerHTML = newDayCardHTML;
-                const newDayBox = daysContainer.querySelector(`.day-box[data-day="${day}"]`);
-                addSingleDayCardEventListeners(newDayBox);
-            }
-        }
-        renderSummary();
-    };
-
-    
-    const saveLocalData = () => {
-        localStorage.setItem('workData', JSON.stringify(workData));
-        localStorage.setItem('reminders', JSON.stringify(reminders));
-    };
-
-    const clearDayData = (day) => {
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth();
-        const dateKey = `${year}-${month}-${day}`;
-        if (workData[dateKey]) {
-            delete workData[dateKey];
-            
-            if (user) {
-                const userRef = db.collection("users").doc(user.uid);
-                const fieldPath = `workData.${dateKey}`;
-                userRef.update({
-                    [fieldPath]: firebase.firestore.FieldValue.delete()
-                }).catch(err => console.error("Firestore field delete error:", err));
-            } else {
-                saveLocalData();
-            }
-
-            const dayBox = daysContainer.querySelector(`.day-box[data-day="${day}"]`);
-            if (dayBox) {
-                const newDayCardHTML = createDayCardHTML(day);
-                dayBox.outerHTML = newDayCardHTML;
-                const newDayBox = daysContainer.querySelector(`.day-box[data-day="${day}"]`);
-                addSingleDayCardEventListeners(newDayBox);
-            }
-            renderSummary();
-        }
-    };
-
-    // EVENT LISTENER DEFINITIONS
-    const handleThemeToggle = () => {
-        const currentTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-        applyTheme(currentTheme === 'light' ? 'dark' : 'light');
-    }
-
-    const addSingleDayCardEventListeners = (dayBox) => {
-        const day = dayBox.dataset.day;
-        const menuBtn = dayBox.querySelector('.day-card-menu-btn');
-        const dropdown = dayBox.querySelector('.day-card-menu-dropdown');
-        
-        menuBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            document.querySelectorAll('.day-card-menu-dropdown').forEach(d => {
-                if (d !== dropdown) d.classList.add('hidden');
-            });
-            dropdown.classList.toggle('hidden');
-        });
-
-        dayBox.querySelector('.clear-all-btn').addEventListener('click', () => {
-            if (confirm('Are you sure you want to clear all data for this day?')) {
-                clearDayData(day);
-            }
-            dropdown.classList.add('hidden');
-        });
-
-        dayBox.querySelectorAll('input, select').forEach(el => {
-            if (el.classList.contains('custom-time-input')) {
-                el.addEventListener('click', (e) => showTimePickerModal(e.target));
-            }
-            const eventType = el.tagName === 'SELECT' ? 'change' : 'input';
-            el.addEventListener(eventType, (e) => {
-                const { key, field } = e.target.dataset;
-                updateWorkData(key, field, e.target.value);
-            });
-        });
-    };
-
-    const addDayCardEventListeners = () => {
-        daysContainer.querySelectorAll('.day-box').forEach(dayBox => {
-            addSingleDayCardEventListeners(dayBox);
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.day-card-menu-btn')) {
-                document.querySelectorAll('.day-card-menu-dropdown').forEach(d => d.classList.add('hidden'));
-            }
-        });
-    };
-
-    const addSummaryEventListeners = () => {
-        document.getElementById('clear-month-btn').addEventListener('click', handleClearMonthData);
-        document.getElementById('backup-btn').addEventListener('click', () => handleBackup(currentDate.getFullYear(), currentDate.getMonth()));
-        document.getElementById('restore-file-input').addEventListener('change', handleRestore);
-    };
-
-    // ACTION HANDLERS
-    const handleClearMonthData = () => {
-        if (window.confirm("Are you sure you want to clear all data for this month? This action cannot be undone.")) {
-            const monthPrefix = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
-            Object.keys(workData).forEach(key => {
-                if (key.startsWith(monthPrefix)) delete workData[key];
-            });
-            if(user) {
-                syncToCloud();
-            } else {
-                saveLocalData();
-            }
-            renderAll();
-        }
-    };
-    
-    const handleBackup = (year, month) => {
-        const monthPrefix = `${year}-${month}`;
-        const monthData = Object.keys(workData)
-            .filter(key => key.startsWith(monthPrefix))
-            .reduce((obj, key) => {
-                obj[key] = workData[key];
-                return obj;
-            }, {});
-        
-        if (Object.keys(monthData).length === 0) return alert("No data for this month to backup.");
-        const blob = new Blob([JSON.stringify(monthData, null, 2)], { type: 'application/json' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `WorkData_${year}_${month + 1}.json`;
-        a.click();
-        URL.revokeObjectURL(a.href);
-    };
-
-    const handleRestore = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const restoredData = JSON.parse(event.target.result);
-                workData = { ...workData, ...restoredData };
-                if(user) {
-                    syncToCloud();
-                } else {
-                    saveLocalData();
-                }
-                renderAll();
-                alert("Data restored successfully.");
-            } catch (err) {
-                alert("Error restoring data. Invalid file.");
-            }
-        };
-        reader.readAsText(file);
-        e.target.value = '';
-    };
-
-    const scrollToToday = () => {
-        if (!isInitialLoad) return;
-
-        const today = new Date();
-        const isCurrentMonthView = today.getFullYear() === currentDate.getFullYear() && today.getMonth() === currentDate.getMonth();
-
-        if (isCurrentMonthView) {
-            const todayEl = document.querySelector(`.day-box[data-day="${today.getDate()}"]`);
-            if (todayEl) {
+            const addToast = useCallback((message, type = 'success') => {
+                const id = Date.now();
+                setToasts(prev => [...prev, { id, message, type }]);
                 setTimeout(() => {
-                    todayEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 500); 
-            }
-        }
-        isInitialLoad = false;
-    };
-
-    // MODAL CONTENT AND LOGIC
-    const addSigninEventListeners = () => {
-        document.getElementById('show-signup-btn').addEventListener('click', showSignUpModal);
-
-        document.getElementById('signin-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('auth-email').value;
-            const password = document.getElementById('auth-password').value;
-            const errorEl = document.getElementById('signin-error');
-            errorEl.textContent = '';
+                    setToasts(prev => prev.filter(t => t.id !== id));
+                }, 4000);
+            }, []);
             
-            try {
-                await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+            useEffect(() => {
+                const handleOnline = () => {
+                    setIsOffline(false);
+                    addToast("You are back online!", "success");
+                };
+                const handleOffline = () => {
+                    setIsOffline(true);
+                    addToast("You are offline. Changes will be synced later.", "warning");
+                };
 
-                if (!userCredential.user.emailVerified) {
-                    errorEl.textContent = 'Your email is not verified. Please check your inbox.';
-                    await auth.signOut();
-                    return;
-                }
-            } catch (err) {
-                errorEl.textContent = err.message;
-            }
-        });
+                window.addEventListener('online', handleOnline);
+                window.addEventListener('offline', handleOffline);
 
-        document.getElementById('google-signin-btn').addEventListener('click', async () => {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            try {
-                await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-                await auth.signInWithPopup(provider);
-            } catch (e) {
-                document.getElementById('signin-error').textContent = e.message;
-            }
-        });
-    };
-
-    const showSignUpModal = () => {
-        const content = `
-            <form id="signup-form" autocomplete="on">
-                <div class="space-y-4">
-                     <div>
-                        <label for="signup-name" class="font-medium text-sm mb-1.5 text-gray-700 dark:text-gray-300">Full Name</label>
-                        <input id="signup-name" type="text" placeholder="Enter your full name" autocomplete="name" required class="p-2 w-full border border-gray-300 rounded-lg bg-gray-50/50 transition duration-200 premium-input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200" />
-                    </div>
-                     <div>
-                        <label for="signup-email" class="font-medium text-sm mb-1.5 text-gray-700 dark:text-gray-300">Email</label>
-                        <input id="signup-email" type="email" placeholder="Enter your email" autocomplete="email" required class="p-2 w-full border border-gray-300 rounded-lg bg-gray-50/50 transition duration-200 premium-input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200" />
-                    </div>
-                    <div>
-                        <label for="signup-password" class="font-medium text-sm mb-1.5 text-gray-700 dark:text-gray-300">Password</label>
-                        <input id="signup-password" type="password" placeholder="Create a password" autocomplete="new-password" required class="p-2 w-full border border-gray-300 rounded-lg bg-gray-50/50 transition duration-200 premium-input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200" />
-                    </div>
-                    <div>
-                        <label for="signup-confirm-password" class="font-medium text-sm mb-1.5 text-gray-700 dark:text-gray-300">Confirm Password</label>
-                        <input id="signup-confirm-password" type="password" placeholder="Confirm your password" autocomplete="new-password" required class="p-2 w-full border border-gray-300 rounded-lg bg-gray-50/50 transition duration-200 premium-input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200" />
-                    </div>
-                    <p id="signup-error" class="text-red-500 text-sm h-4"></p>
-                    <button type="submit" class="w-full px-5 py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-all duration-200 transform hover:scale-[1.03] bg-blue-600 text-white hover:bg-blue-700">Create Account</button>
-                    <p class="text-center text-sm text-gray-600 dark:text-gray-400">
-                        Already have an account? 
-                        <button type="button" id="show-login-btn" class="font-semibold text-blue-600 hover:underline dark:text-blue-400">Login</button>
-                    </p>
-                </div>
-            </form>
-        `;
-        openModal(createModal('Sign Up', content));
-
-        document.getElementById('show-login-btn').addEventListener('click', closeModal);
-
-        document.getElementById('signup-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const fullName = document.getElementById('signup-name').value;
-            const email = document.getElementById('signup-email').value;
-            const password = document.getElementById('signup-password').value;
-            const confirmPassword = document.getElementById('signup-confirm-password').value;
-            const errorEl = document.getElementById('signup-error');
-            errorEl.textContent = '';
-
-            if (password !== confirmPassword) {
-                errorEl.textContent = 'Passwords do not match.';
-                return;
-            }
-            try {
-                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                await userCredential.user.updateProfile({ displayName: fullName });
-                await userCredential.user.sendEmailVerification();
-                await auth.signOut();
-                closeModal();
-                showInfoModal('Verification Required', 'A verification link has been sent to your email. Please verify your account before logging in.');
-            } catch (err) {
-                errorEl.textContent = err.message;
-            }
-        });
-    };
-
-     const showLogoutConfirmationModal = () => {
-        const content = `
-            <p class="text-center text-gray-600 dark:text-gray-400 mb-6">Are you sure you want to log out?</p>
-            <div class="flex gap-4">
-                 <button id="cancel-logout-btn" class="w-full px-5 py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-all duration-200 bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">Cancel</button>
-                 <button id="confirm-logout-btn" class="w-full px-5 py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-all duration-200 bg-red-600 text-white hover:bg-red-700">Logout</button>
-            </div>
-        `;
-        openModal(createModal('Logout', content));
-
-        document.getElementById('cancel-logout-btn').addEventListener('click', closeModal);
-        document.getElementById('confirm-logout-btn').addEventListener('click', () => {
-            auth.signOut().then(() => {
-                localStorage.removeItem('workData');
-                localStorage.removeItem('reminders');
-                isInitialLoad = true;
-                closeModal();
-                // onAuthStateChanged will handle UI switch
-            });
-        });
-    };
-    
-    const showTimePickerModal = (targetInput) => {
-        const itemHeight = 40;
-        const numVisibleItems = 5;
-        const paddingItems = Math.floor(numVisibleItems / 2);
-
-        let currentHour, currentMinute;
-        const initialValue = targetInput.value;
-        if (initialValue && initialValue.includes(':')) {
-            [currentHour, currentMinute] = initialValue.split(':').map(Number);
-        } else {
-            const now = new Date();
-            currentHour = now.getHours();
-            currentMinute = now.getMinutes();
-        }
-
-        const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
-        const minutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
-
-        const createWheelItems = (items) => {
-            let listItems = '';
-            for (let i = 0; i < paddingItems; i++) listItems += '<li class="time-picker-item">&nbsp;</li>';
-            items.forEach(item => listItems += `<li class="time-picker-item">${item}</li>`);
-            for (let i = 0; i < paddingItems; i++) listItems += '<li class="time-picker-item">&nbsp;</li>';
-            return listItems;
-        };
-        
-        const modalContent = `
-            <div class="time-picker-header">
-                <button id="clear-time-btn" class="text-blue-600 dark:text-blue-400 font-semibold px-2 py-1">Clear</button>
-                <h3 class="font-bold text-lg dark:text-gray-200">Select Time</h3>
-                <button id="done-time-btn" class="text-blue-600 dark:text-blue-400 font-bold px-2 py-1">Done</button>
-            </div>
-            <div class="time-picker-wheels">
-                <div class="time-picker-selection-indicator"></div>
-                <div id="hour-wheel" class="time-picker-wheel">
-                    <ul class="time-picker-wheel-col">${createWheelItems(hours)}</ul>
-                </div>
-                <div class="time-picker-spacer">:</div>
-                <div id="minute-wheel" class="time-picker-wheel">
-                    <ul class="time-picker-wheel-col">${createWheelItems(minutes)}</ul>
-                </div>
-            </div>
-        `;
-
-        const modalHTML = `<div class="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm flex justify-center items-end z-50 p-0 modal-bg-animate" data-dismiss="modal">
-            <div class="time-picker-content" onclick="event.stopPropagation()">${modalContent}</div>
-        </div>`;
-        openModal(modalHTML);
-
-        const hourWheel = document.getElementById('hour-wheel');
-        const minuteWheel = document.getElementById('minute-wheel');
-
-        const snapToValue = (wheel, value) => {
-            wheel.scrollTo({ top: value * itemHeight, behavior: 'smooth' });
-        };
-
-        setTimeout(() => {
-            hourWheel.scrollTop = currentHour * itemHeight;
-            minuteWheel.scrollTop = currentMinute * itemHeight;
-        }, 10);
-
-
-        let scrollTimeout;
-        const setupSnapScroll = (wheel) => {
-            wheel.addEventListener('scroll', () => {
-                clearTimeout(scrollTimeout);
-                scrollTimeout = setTimeout(() => {
-                    const selectedIndex = Math.round(wheel.scrollTop / itemHeight);
-                    snapToValue(wheel, selectedIndex);
-                }, 150);
-            });
-        };
-
-        setupSnapScroll(hourWheel);
-        setupSnapScroll(minuteWheel);
-
-        document.getElementById('done-time-btn').addEventListener('click', () => {
-            const selectedHour = Math.round(hourWheel.scrollTop / itemHeight);
-            const selectedMinute = Math.round(minuteWheel.scrollTop / itemHeight);
-            const formattedTime = `${String(selectedHour).padStart(2, '0')}:${String(selectedMinute).padStart(2, '0')}`;
+                return () => {
+                    window.removeEventListener('online', handleOnline);
+                    window.removeEventListener('offline', handleOffline);
+                };
+            }, [addToast]);
             
-            targetInput.value = formattedTime;
-            targetInput.dispatchEvent(new Event('input', { bubbles: true }));
-            closeModal();
-        });
-
-        document.getElementById('clear-time-btn').addEventListener('click', () => {
-            targetInput.value = '';
-            targetInput.dispatchEvent(new Event('input', { bubbles: true }));
-            closeModal();
-        });
-    };
-
-    const showReminderModal = () => {
-        const renderReminderContent = (isAdding = false, editingIndex = null) => {
-            let content = '';
-            if (isAdding) {
-                const reminder = editingIndex !== null ? reminders[editingIndex] : {};
-                content = `
-                    <div class="space-y-4" id="reminder-form">
-                        <div>
-                            <label class="font-medium text-sm mb-1.5 text-gray-700 dark:text-gray-300">Category</label>
-                            <select id="reminder-category" class="w-full p-2 border border-gray-300 rounded-lg bg-gray-50/50 transition duration-200 premium-select dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200">
-                                ${reminderCategories.map(c => `<option value="${c}" ${c === reminder.category ? 'selected' : ''}>${c}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div id="custom-details-container" class="${reminder.category === 'Other' ? '' : 'hidden'}">
-                             <label class="font-medium text-sm mb-1.5 text-gray-700 dark:text-gray-300">Custom Details</label>
-                             <input type="text" id="reminder-custom" placeholder="Specify your reminder" value="${reminder.customDetails || ''}" class="w-full p-2 border border-gray-300 rounded-lg bg-gray-50/50 transition duration-200 premium-input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200" />
-                        </div>
-                        <div>
-                            <label class="font-medium text-sm mb-1.5 text-gray-700 dark:text-gray-300">Date</label>
-                            <input type="date" id="reminder-date" value="${reminder.date || ''}" class="w-full p-2 border border-gray-300 rounded-lg bg-gray-50/50 transition duration-200 premium-input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200" />
-                        </div>
-                        <div class="flex gap-3 mt-4">
-                            <button id="cancel-reminder" class="w-full px-5 py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-all duration-200 transform hover:scale-[1.03] bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700">Cancel</button>
-                            <button id="save-reminder" class="w-full px-5 py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-all duration-200 transform hover:scale-[1.03] bg-blue-600 text-white hover:bg-blue-700">${editingIndex !== null ? 'Save Changes' : 'Save Reminder'}</button>
-                        </div>
-                    </div>
-                `;
-            } else {
-                content = `
-                    <div id="reminderList" class="space-y-3 max-h-96 overflow-y-auto pr-2">
-                        ${reminders.length > 0 ? reminders.map((r, i) => `
-                            <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border dark:border-gray-700">
-                                <div>
-                                    <p class="font-semibold text-gray-800 dark:text-gray-200">${r.category}</p>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400">${new Date(r.date).toLocaleDateString()}</p>
-                                    ${r.category === 'Other' ? `<p class="text-sm text-gray-500 dark:text-gray-400 italic">${r.customDetails}</p>` : ''}
-                                </div>
-                                <div class="flex gap-2">
-                                    <button class="edit-reminder-btn text-sm text-blue-600 dark:text-blue-400 hover:underline" data-index="${i}">Edit</button>
-                                    <button class="remove-reminder-btn text-sm text-red-600 dark:text-red-400 hover:underline" data-index="${i}">Remove</button>
-                                </div>
-                            </div>
-                        `).join('') : '<p class="text-gray-500 text-center py-4">No reminders set.</p>'}
-                    </div>
-                    <button id="add-reminder-btn" class="mt-4 w-full px-5 py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-all duration-200 transform hover:scale-[1.03] bg-blue-600 text-white hover:bg-blue-700">Add New Reminder</button>
-                `;
-            }
-            openModal(createModal('Your Reminders', content, 'reminder-modal'));
-
-            if (isAdding) {
-                document.getElementById('cancel-reminder').addEventListener('click', () => renderReminderContent());
-                document.getElementById('save-reminder').addEventListener('click', () => {
-                    const newReminder = {
-                        category: document.getElementById('reminder-category').value,
-                        date: document.getElementById('reminder-date').value,
-                        customDetails: document.getElementById('reminder-custom').value,
-                    };
-                    if (!newReminder.date) return alert('Please select a date.');
-                    if (editingIndex !== null) {
-                        reminders[editingIndex] = newReminder;
-                    } else {
-                        reminders.push(newReminder);
-                    }
-                    if(user) {
-                      syncToCloud();
-                    } else {
-                      saveLocalData();
-                    }
-                    renderReminderContent();
-                });
-                 document.getElementById('reminder-category').addEventListener('change', (e) => {
-                    document.getElementById('custom-details-container').classList.toggle('hidden', e.target.value !== 'Other');
-                });
-            } else {
-                document.getElementById('add-reminder-btn').addEventListener('click', () => renderReminderContent(true));
-                document.querySelectorAll('.edit-reminder-btn').forEach(btn => btn.addEventListener('click', (e) => renderReminderContent(true, e.target.dataset.index)));
-                document.querySelectorAll('.remove-reminder-btn').forEach(btn => btn.addEventListener('click', (e) => {
-                    reminders.splice(e.target.dataset.index, 1);
-                    if(user) {
-                      syncToCloud();
-                    } else {
-                      saveLocalData();
-                    }
-                    renderReminderContent();
-                }));
-            }
-        };
-        renderReminderContent();
-    };
-
-    const showDatePickerModal = () => {
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth();
-        const today = new Date();
-        const isCurrentMonthView = today.getFullYear() === year && today.getMonth() === month;
-
-        const firstDayOfMonth = (new Date(year, month, 1).getDay() + 6) % 7;
-        const daysInMonth = getDaysInMonth(year, month);
-
-        const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(label => `
-            <div class="text-center font-bold text-xs text-gray-500 dark:text-gray-400">${label}</div>
-        `).join('');
-
-        let daysGrid = '';
-        for (let i = 0; i < firstDayOfMonth; i++) {
-            daysGrid += '<div></div>';
-        }
-
-        for (let day = 1; day <= daysInMonth; day++) {
-            const dateKey = `${year}-${month}-${day}`;
-            const hasData = workData[dateKey] && Object.keys(workData[dateKey]).length > 0;
-            const isToday = isCurrentMonthView && day === today.getDate();
-            const highlightClass = isToday ? 'bg-blue-600 text-white' : 'hover:bg-blue-100 dark:hover:bg-gray-700';
-            daysGrid += `
-                <button data-day="${day}" class="date-select-btn relative flex items-center justify-center h-10 w-10 rounded-full text-sm font-medium text-gray-700 dark:text-gray-300 ${highlightClass} transition-colors">
-                    ${day}
-                    ${hasData ? '<div class="absolute bottom-1.5 h-1.5 w-1.5 bg-green-500 rounded-full"></div>' : ''}
-                </button>
-            `;
-        }
-
-        const content = `
-            <div class="grid grid-cols-7 gap-y-2 gap-x-1 items-center">
-                ${dayLabels}
-                ${daysGrid}
-            </div>
-        `;
-        openModal(createModal('Go to Date', content));
-        
-        document.querySelectorAll('.date-select-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const day = e.currentTarget.dataset.day;
-                const dayEl = document.querySelector(`.day-box[data-day="${day}"]`);
-                if (dayEl) {
-                    dayEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            useEffect(() => {
+                if (user) {
+                    const queue = JSON.parse(localStorage.getItem(`sync_queue_${user.uid}`) || '[]');
+                    setSyncQueue(queue);
                 }
-                closeModal();
-            });
-        });
-    };
+            }, [user]);
 
-    const showMonthPickerModal = () => {
-        let pickerYear = currentDate.getFullYear();
-
-        const renderMonthPickerContent = (year) => {
-            const currentSelectedYear = currentDate.getFullYear();
-            const currentSelectedMonth = currentDate.getMonth();
-
-            const monthsGrid = months.map((month, index) => {
-                const isSelected = year === currentSelectedYear && index === currentSelectedMonth;
-                const selectedClasses = isSelected 
-                    ? 'bg-blue-600 text-white font-semibold' 
-                    : 'bg-gray-100 dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-gray-700';
-                return `<button data-month="${index}" class="month-select-btn w-full text-center p-3 rounded-lg transition-colors ${selectedClasses}">${month.substring(0, 3)}</button>`;
-            }).join('');
-
-            const modalContentEl = document.getElementById('month-picker-content');
-            if (modalContentEl) {
-                modalContentEl.innerHTML = `
-                    <div class="flex justify-between items-center mb-4">
-                        <button id="prev-year-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                        </button>
-                        <span class="font-bold text-lg text-gray-800 dark:text-gray-200">${year}</span>
-                        <button id="next-year-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                        </button>
-                    </div>
-                    <div class="grid grid-cols-4 gap-2">
-                        ${monthsGrid}
-                    </div>
-                `;
-                addPickerListeners();
-            }
-        };
-
-        const addPickerListeners = () => {
-            document.getElementById('prev-year-btn').addEventListener('click', () => {
-                pickerYear--;
-                renderMonthPickerContent(pickerYear);
-            });
-            document.getElementById('next-year-btn').addEventListener('click', () => {
-                pickerYear++;
-                renderMonthPickerContent(pickerYear);
-            });
-            document.querySelectorAll('.month-select-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const selectedMonth = parseInt(e.currentTarget.dataset.month, 10);
-                    currentDate.setFullYear(pickerYear);
-                    currentDate.setMonth(selectedMonth);
-                    closeModal();
-                    renderAll(); // Renders the report page
-                    if(document.getElementById('dashboard-page').style.display === 'block'){
-                        renderDashboard(); // If dashboard was open, re-render it for the new month
-                    }
-                });
-            });
-        };
-
-        openModal(createModal('Select Month & Year', '<div id="month-picker-content"></div>'));
-        renderMonthPickerContent(pickerYear);
-    };
-
-    const showShareModal = () => {
-        const content = `
-            <div class="space-y-4">
-                 <p class="text-sm text-gray-600 dark:text-gray-400">
-                    Please select a month to export. The export will be based on the month you choose here.
-                </p>
-                <button id="export-pdf-btn" class="w-full px-5 py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-all bg-blue-600 text-white hover:bg-blue-700">Export Month Data as PDF</button>
-                <button id="export-csv-btn" class="w-full px-5 py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-all bg-green-600 text-white hover:bg-green-700">Export Month Data as CSV (Excel)</button>
-            </div>
-        `;
-        openModal(createModal('Share & Export', content));
-
-        document.getElementById('export-pdf-btn').addEventListener('click', () => {
-            closeModal();
-            showExportMonthPickerModal((year, month) => showExportPreview(year, month, 'pdf'));
-        });
-        document.getElementById('export-csv-btn').addEventListener('click', () => {
-            closeModal();
-            showExportMonthPickerModal((year, month) => exportAsCSV(year, month));
-        });
-    };
-    
-    const showExportMonthPickerModal = (onSelectCallback) => {
-        let pickerYear = currentDate.getFullYear();
-        const title = 'Select Month to Export';
-        const content = `<div id="export-month-picker-content"></div>`;
-
-        const renderContent = (year) => {
-            const monthsGrid = months.map((month, index) => 
-                `<button data-month="${index}" class="export-month-select-btn w-full text-center p-3 rounded-lg transition-colors bg-gray-100 dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-gray-700">${month}</button>`
-            ).join('');
-
-            const modalContentEl = document.getElementById('export-month-picker-content');
-            if (modalContentEl) {
-                modalContentEl.innerHTML = `
-                    <div class="flex justify-between items-center mb-4">
-                        <button id="prev-export-year-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">&lt;</button>
-                        <span class="font-bold text-lg text-gray-800 dark:text-gray-200">${year}</span>
-                        <button id="next-export-year-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">&gt;</button>
-                    </div>
-                    <div class="grid grid-cols-3 gap-2">${monthsGrid}</div>
-                `;
-                addListeners();
-            }
-        };
-
-        const addListeners = () => {
-            document.getElementById('prev-export-year-btn').addEventListener('click', () => renderContent(--pickerYear));
-            document.getElementById('next-export-year-btn').addEventListener('click', () => renderContent(++pickerYear));
-            document.querySelectorAll('.export-month-select-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const selectedMonth = parseInt(e.currentTarget.dataset.month, 10);
-                    closeModal();
-                    onSelectCallback(pickerYear, selectedMonth);
-                });
-            });
-        };
-
-        openModal(createModal(title, content));
-        renderContent(pickerYear);
-    };
-
-
-     const showAiModal = () => {
-        const content = `
-            <div class="space-y-4">
-                <p class="text-sm text-gray-600 dark:text-gray-400">
-                    Speak or type your leave reason in Tanglish (Tamil + English). The AI will convert it into a professional English message.
-                </p>
-                <div>
-                    <div class="flex justify-between items-center mb-1.5">
-                        <label for="ai-input" class="font-medium text-sm text-gray-700 dark:text-gray-300">Your Message</label>
-                        <button id="voice-input-btn" title="Speak your message" class="p-1.5 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 rounded-full transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
-                        </button>
-                    </div>
-                    <textarea id="ai-input" rows="4" placeholder="e.g., sir naan inniku office varamudiyathu health illa" class="w-full p-2 border border-gray-300 rounded-lg bg-gray-50/50 transition duration-200 premium-input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"></textarea>
-                </div>
-                <div id="ai-error-container" class="hidden text-sm text-red-600 dark:text-red-400 mt-2 p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800/50"></div>
-                <button id="generate-ai-message-btn" class="w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-all duration-200 transform hover:scale-[1.03] bg-blue-600 text-white hover:bg-blue-700">
-                    <span>Convert to Professional English</span>
-                    <div id="ai-spinner" class="loader-small hidden"></div>
-                </button>
-                <div id="ai-output-container" class="hidden space-y-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <label class="font-medium text-sm text-gray-700 dark:text-gray-300">Generated Message</label>
-                    <div class="relative">
-                        <p id="ai-output" class="p-4 bg-gray-100 dark:bg-gray-800/50 rounded-lg text-gray-800 dark:text-gray-200 whitespace-pre-wrap min-h-[50px]"></p>
-                        <button id="copy-ai-output-btn" title="Copy to clipboard" class="absolute top-2 right-2 p-1.5 text-gray-500 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 rounded-md">
-                            <span class="copy-icon-span"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-        openModal(createModal('AI Professional Message Assistant', content));
-        
-        const inputEl = document.getElementById('ai-input');
-        const outputContainer = document.getElementById('ai-output-container');
-        const outputEl = document.getElementById('ai-output');
-        const spinner = document.getElementById('ai-spinner');
-        const generateBtn = document.getElementById('generate-ai-message-btn');
-        const voiceBtn = document.getElementById('voice-input-btn');
-        const copyBtn = document.getElementById('copy-ai-output-btn');
-        const errorContainer = document.getElementById('ai-error-container');
-
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            voiceBtn.style.display = 'none';
-        } else {
-            const recognition = new SpeechRecognition();
-            recognition.lang = 'ta-IN';
-            recognition.interimResults = true;
-            recognition.continuous = true;
-            let isListening = false;
-
-            recognition.onresult = (event) => {
-                let interimTranscript = '';
-                let finalTranscript = '';
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript;
-                    } else {
-                        interimTranscript += event.results[i][0].transcript;
-                    }
+            useEffect(() => {
+                const root = window.document.documentElement;
+                if (theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    root.classList.add('dark');
+                } else {
+                    root.classList.remove('dark');
                 }
-                inputEl.value = finalTranscript + interimTranscript;
+            }, [theme]);
+            
+
+            const value = {
+                user, setUser,
+                loading, setLoading,
+                toasts, addToast,
+                isSidebarOpen, setSidebarOpen,
+                theme, setTheme,
+                isOffline, syncQueue, setSyncQueue
             };
 
-            recognition.onstart = () => { isListening = true; voiceBtn.classList.add('voice-btn-listening'); };
-            recognition.onend = () => { isListening = false; voiceBtn.classList.remove('voice-btn-listening'); };
-            recognition.onerror = (event) => {
-                isListening = false;
-                voiceBtn.classList.remove('voice-btn-listening');
-                errorContainer.textContent = `Speech recognition error: ${event.error}. Please try again.`;
-                errorContainer.classList.remove('hidden');
-            };
-
-            voiceBtn.addEventListener('click', () => {
-                errorContainer.classList.add('hidden');
-                if (isListening) {
-                    recognition.stop();
-                } else {
-                    try { recognition.start(); } catch(e) {
-                         errorContainer.textContent = `Could not start voice recognition.`;
-                         errorContainer.classList.remove('hidden');
-                    }
-                }
-            });
-        }
-        
-        generateBtn.addEventListener('click', async () => {
-            errorContainer.classList.add('hidden');
-            const userInput = inputEl.value.trim();
-            if (!userInput) return;
-
-            spinner.classList.remove('hidden');
-            generateBtn.disabled = true;
-
-            try {
-                const result = await window.generateProfessionalMessage(userInput);
-                outputEl.textContent = result;
-                outputContainer.classList.remove('hidden');
-            } catch (error) {
-                console.error(error);
-                outputEl.textContent = 'Sorry, an error occurred. Please try again.';
-                outputContainer.classList.remove('hidden');
-            } finally {
-                spinner.classList.add('hidden');
-                generateBtn.disabled = false;
-            }
-        });
-
-        copyBtn.addEventListener('click', () => {
-            navigator.clipboard.writeText(outputEl.textContent).then(() => {
-                copyBtn.innerHTML = 'Copied!';
-                copyBtn.disabled = true;
-                setTimeout(() => {
-                    copyBtn.innerHTML = `<span class="copy-icon-span"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></span>`;
-                    copyBtn.disabled = false;
-                }, 2000);
-            });
-        });
-    };
-
-    const showExportPreview = (year, month) => {
-        const daysInMonth = getDaysInMonth(year, month);
-
-        const tableRows = Array.from({ length: daysInMonth }, (_, i) => {
-            const day = i + 1;
-            const dateKey = `${year}-${month}-${day}`;
-            const dayData = workData[dateKey] || {};
-            const formattedDate = `${String(day).padStart(2, '0')}.${String(month + 1).padStart(2, '0')}.${year}`;
-            const leaveStatusText = dayData.leaveStatus || 'No';
-            const isDayWeekend = isWeekend(year, month, day);
-
-            const rowClass = 'border-b border-gray-200';
-            const dateClass = isDayWeekend ? 'text-red-500 font-bold' : '';
-            const leaveStatusHTML = leaveStatusText === 'Yes' ? `<span class="font-bold text-blue-700">${leaveStatusText}</span>` : leaveStatusText;
-
-            return `
-                <tr class="${rowClass}">
-                    <td class="p-3 border-x border-gray-200 ${dateClass}">${formattedDate}</td>
-                    <td class="p-3 border-x border-gray-200">${dayData.inTime || '-'}</td>
-                    <td class="p-3 border-x border-gray-200">${dayData.outTime || '-'}</td>
-                    <td class="p-3 border-x border-gray-200">${dayData.movementOut || '-'}</td>
-                    <td class="p-3 border-x border-gray-200">${dayData.movementIn || '-'}</td>
-                    <td class="p-3 border-x border-gray-200 break-words">${dayData.teamMembers || '-'}</td>
-                    <td class="p-3 border-x border-gray-200 break-words">${dayData.workLocation || '-'}</td>
-                    <td class="p-3 border-x border-gray-200">${dayData.vehicleNumber || '-'}</td>
-                    <td class="p-3 border-x border-gray-200">${dayData.km || '-'}</td>
-                    <td class="p-3 border-x border-gray-200">${dayData.specialDays || '-'}</td>
-                    <td class="p-3 border-x border-gray-200">${leaveStatusHTML}</td>
-                    <td class="p-3 border-x border-gray-200 break-words">${dayData.leaveReason || '-'}</td>
-                </tr>`;
-        }).join('');
-
-        const previewHTML = `
-            <div class="fixed inset-0 bg-gray-900 bg-opacity-70 flex justify-center items-center z-50 p-4 overflow-auto modal-bg-animate" data-dismiss="modal">
-                <div class="bg-white rounded-lg shadow-2xl w-full max-w-4xl transform transition-all modal-content-animate" onclick="event.stopPropagation()">
-                    <div class="p-4 sm:p-6 sticky top-0 bg-white border-b z-10 flex flex-col sm:flex-row justify-between items-center gap-3">
-                        <h2 class="text-xl font-bold text-center sm:text-left">Export Preview: ${months[month]} ${year}</h2>
-                        <div class="flex gap-3">
-                            <button id="generate-pdf-btn" class="px-5 py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-all bg-blue-600 text-white hover:bg-blue-700">Download as PDF</button>
-                            <button data-dismiss="modal" class="px-5 py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-all bg-white text-gray-800 border border-gray-300 hover:bg-gray-100">Close</button>
-                        </div>
-                    </div>
-                    <div id="export-content" class="p-4 bg-white text-black" style="font-size: 18px;">
-                        <div class="text-center mb-4" style="font-size: 20px;">
-                            <h2 class="text-xl font-bold">Work Data Sheet</h2>
-                            <p class="text-md font-semibold">Name: T.Jeyaraman | Service No: 016696</p>
-                            <h3 class="text-lg font-semibold">${months[month]} ${year}</h3>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full border-collapse border-y border-gray-200">
-                                <thead class="bg-gray-100 text-gray-700">
-                                    <tr>
-                                        ${['Day', 'In', 'Out', 'Mov Out', 'Mov In', 'Team', 'Location', 'Vehicle', 'KM', 'Special', 'Leave', 'Reason'].map(h => 
-                                            `<th class="p-3 border-x border-gray-200 font-semibold">${h}</th>`
-                                        ).join('')}
-                                    </tr>
-                                </thead>
-                                <tbody class="text-black text-center">${tableRows}</tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>`;
-        openModal(previewHTML);
-
-        document.getElementById('generate-pdf-btn').addEventListener('click', () => {
-            const el = document.getElementById('export-content');
-            loadingSpinner.style.display = 'flex';
-            const originalWidth = el.style.width;
-            el.style.width = '1200px';
-
-            html2canvas(el, { scale: 3, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
-                el.style.width = originalWidth;
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-                const imgData = canvas.toDataURL('image/png');
-                pdf.addImage(imgData, 'PNG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
-                pdf.save(`Work_Report_${year}_${month + 1}.pdf`);
-                loadingSpinner.style.display = 'none';
-            }).catch(err => {
-                el.style.width = originalWidth;
-                console.error('PDF generation failed:', err);
-                alert('Sorry, there was an error generating the PDF.');
-                loadingSpinner.style.display = 'none';
-            });
-        });
-    };
-    
-    // FIREBASE-RELATED FUNCTIONS
-    const syncToCloud = () => {
-        if (user) {
-            db.collection("users").doc(user.uid).set({ workData, reminders }, { merge: true })
-                .catch(err => console.error("Firestore write error:", err));
-        }
-    };
-    
-    // ===================================================================================
-    //
-    //                          DASHBOARD START
-    //
-    // ===================================================================================
-    
-    const renderDashboard = () => {
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth();
-
-        renderHeatMap(year, month);
-        renderLeaveAnalyzer(year, month);
-        renderUpcomingEvents();
-        renderLeaveReasonChart(year, month);
-        renderLocationMap(year, month);
-        addDashboardEventListeners();
-    };
-    
-    const renderHeatMap = (year, month) => {
-        const container = document.getElementById('heatmap-container');
-        const daysInMonth = getDaysInMonth(year, month);
-        const firstDayOfMonth = (new Date(year, month, 1).getDay() + 6) % 7;
-
-        let gridHTML = '<div class="grid grid-cols-7 gap-1.5 text-xs text-center">';
-        ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach(label => gridHTML += `<div class="font-bold text-gray-500 dark:text-gray-400 py-1">${label}</div>`);
-        for (let i = 0; i < firstDayOfMonth; i++) gridHTML += '<div></div>';
-        
-        for (let day = 1; day <= daysInMonth; day++) {
-            const dateKey = `${year}-${month}-${day}`;
-            const dayData = workData[dateKey] || {};
-            const workingHours = calculateHoursDifference(dayData.inTime, dayData.outTime);
-            
-            let statusClass = 'bg-gray-100 dark:bg-gray-800/50';
-            const isDayWeekend = isWeekend(year, month, day);
-
-            if (dayData.leaveReason === 'Own Leave') {
-                statusClass = 'heatmap-leave-own'; // Red
-            } else if (dayData.leaveStatus === 'Yes' || dayData.specialDays) {
-                statusClass = 'heatmap-leave-other'; // Yellow
-            } else if (workingHours > 0) {
-                statusClass = 'heatmap-present'; // Green
-            } else if (isDayWeekend) {
-                statusClass = 'heatmap-weekend';
-            }
-
-            gridHTML += `
-                <div class="heatmap-day cursor-pointer relative w-full aspect-square rounded-md flex items-center justify-center ${statusClass}" data-key="${dateKey}">
-                    ${day}
-                </div>`;
-        }
-        gridHTML += '</div>';
-        container.innerHTML = gridHTML;
-        
-        container.querySelectorAll('.heatmap-day').forEach(el => {
-            el.addEventListener('click', (e) => {
-                const key = e.currentTarget.dataset.key;
-                if (key) showHeatmapDetailModal(key);
-            });
-        });
-    };
-    
-    const showHeatmapDetailModal = (dateKey) => {
-        const dayData = workData[dateKey] || {};
-        const [year, month, day] = dateKey.split('-').map(Number);
-        const dayName = new Date(year, month, day).toLocaleDateString("en-US", { weekday: "long" });
-        const title = `${dayName}, ${months[month]} ${day}, ${year}`;
-        
-        let content = '<div class="space-y-2 text-sm">';
-        const details = {
-            "Status": dayData.leaveStatus === 'Yes' ? `Leave (${dayData.leaveReason || 'N/A'})` : (calculateHoursDifference(dayData.inTime, dayData.outTime) > 0 ? 'Present' : 'No Data'),
-            "In Time": dayData.inTime,
-            "Out Time": dayData.outTime,
-            "Work Location": dayData.workLocation,
-            "Team": dayData.teamMembers,
-            "Vehicle": dayData.vehicleNumber,
-            "KM": dayData.km,
-            "Special Day": dayData.specialDays,
-            "Leave Reason": dayData.leaveReasonText || dayData.customReasonDetails
+            return (
+                <AppContext.Provider value={value}>
+                    {children}
+                </AppContext.Provider>
+            );
         };
         
-        for (const [key, value] of Object.entries(details)) {
-            if(value) {
-                content += `<div class="flex justify-between"><strong class="text-gray-500 dark:text-gray-400">${key}:</strong> <span class="text-right text-gray-800 dark:text-gray-200">${value}</span></div>`
-            }
-        }
-        content += '</div>';
+        const useAppContext = () => useContext(AppContext);
 
-        openModal(createModal(title, content, 'heatmap-detail-modal'));
-    };
+        // ===================================================================================
+        // VIRTUAL FILE: services/firebaseService.js
+        // ===================================================================================
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+        const GoogleAuthProvider = new firebase.auth.GoogleAuthProvider();
 
-    const renderLeaveAnalyzer = (year, month) => {
-        const container = document.getElementById('leave-analyzer-container');
-        const monthPrefix = `${year}-${month}`;
-        let insights = [];
-        const leaveDays = {};
-        let poyaLeaves = 0;
-
-        Object.keys(workData).filter(k => k.startsWith(monthPrefix)).forEach(key => {
-            const data = workData[key];
-            if (data.leaveStatus === 'Yes' && data.leaveReason === 'Own Leave') {
-                const day = parseInt(key.split('-')[2], 10);
-                const dayOfWeek = new Date(year, month, day).getDay();
-                leaveDays[dayOfWeek] = (leaveDays[dayOfWeek] || 0) + 1;
-            }
-            if (data.specialDays === 'Poya Day' && data.leaveStatus === 'Yes') poyaLeaves++;
-        });
-
-        const dayNames = ['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays'];
-        for (const [day, count] of Object.entries(leaveDays)) {
-            if (count > 1) {
-                insights.push(`You took <strong>${count}</strong> own leaves on <strong>${dayNames[day]}</strong> this month.`);
-            }
-        }
-        if (poyaLeaves > 1) insights.push(`You took leaves on <strong>${poyaLeaves} Poya days</strong>.`);
+        // ===================================================================================
+        // VIRTUAL FILE: components/common/*
+        // ===================================================================================
         
-        if (insights.length === 0) {
-            insights.push('Your leave patterns appear normal this month. Great job!');
-        }
+        const Spinner = ({ size = '8', color = 'indigo' }) => (
+            <div className={`animate-spin rounded-full h-${size} w-${size} border-b-2 border-${color}-500`}></div>
+        );
+        
+        const FullPageLoader = () => (
+          <div className="fixed inset-0 bg-gray-100 dark:bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+            <Spinner size="16" />
+          </div>
+        );
 
-        container.innerHTML = insights.map(insight => `
-            <div class="flex items-start gap-3 p-2 rounded-lg bg-blue-50/50 dark:bg-blue-900/20">
-                <span class="text-blue-500 mt-1">✨</span>
-                <p class="text-gray-700 dark:text-gray-300">${insight}</p>
-            </div>`).join('');
-    };
+        const ToastContainer = () => {
+            const { toasts } = useAppContext();
+            const typeClasses = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                warning: 'bg-yellow-500',
+                info: 'bg-blue-500',
+            };
 
-    const renderUpcomingEvents = () => {
-        const container = document.getElementById('events-container');
-        const now = new Date();
-        now.setHours(0,0,0,0);
-        const sevenDaysLater = new Date();
-        sevenDaysLater.setDate(now.getDate() + 7);
-
-        const upcoming = reminders.filter(r => {
-            const reminderDate = new Date(r.date);
-            return reminderDate >= now && reminderDate <= sevenDaysLater;
-        }).sort((a,b) => new Date(a.date) - new Date(b.date));
-
-        if (upcoming.length === 0) {
-            container.innerHTML = `<p class="text-gray-500 text-center py-4">No upcoming events.</p>`;
-            return;
-        }
-
-        container.innerHTML = upcoming.map(r => `
-            <div class="flex items-center gap-3">
-                <div class="text-center bg-gray-100 dark:bg-gray-700 p-2 rounded-md">
-                    <div class="font-bold text-sm">${new Date(r.date).getDate()}</div>
-                    <div class="text-xs">${months[new Date(r.date).getMonth()].substring(0,3)}</div>
+            return (
+                <div className="fixed bottom-5 right-5 z-50 space-y-3">
+                    {toasts.map(toast => (
+                        <div key={toast.id} className={`${typeClasses[toast.type]} text-white py-2 px-4 rounded-lg shadow-lg animate-fade-in-up`}>
+                            {toast.message}
+                        </div>
+                    ))}
                 </div>
-                <div>
-                    <p class="font-semibold text-gray-800 dark:text-gray-200">${r.category}</p>
-                    ${r.customDetails ? `<p class="text-xs text-gray-500 dark:text-gray-400">${r.customDetails}</p>` : ''}
+            );
+        };
+        
+        const Modal = ({ isOpen, onClose, title, children }) => {
+            if (!isOpen) return null;
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40" onClick={onClose}>
+                    <div className="glass rounded-lg shadow-xl w-full max-w-md p-6 m-4" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-bold">{title}</h2>
+                            <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-500/20">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+                        <div>{children}</div>
+                    </div>
                 </div>
-            </div>
-        `).join('');
-    };
-
-    const renderLeaveReasonChart = (year, month) => {
-        const ctx = document.getElementById('leave-reason-chart').getContext('2d');
-        const monthPrefix = `${year}-${month}`;
-        const reasonCounts = {};
+            );
+        };
         
-        Object.keys(workData).filter(k => k.startsWith(monthPrefix)).forEach(key => {
-            const data = workData[key];
-            if (data.leaveReason === 'Own Leave' && data.leaveReasonText) {
-                const reason = data.leaveReasonText.trim();
-                reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
-            }
-        });
+        const Icon = ({ name, className = "w-6 h-6" }) => {
+            const icons = {
+                dashboard: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />,
+                list: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />,
+                scan: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />,
+                analytics: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />,
+                backup: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />,
+                settings: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />,
+                menu: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />,
+                user: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />,
+                logout: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />,
+                plus: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />,
+            };
+            return (
+              <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  {icons[name] || icons['dashboard']}
+              </svg>
+            );
+        };
         
-        const sortedReasons = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
-        
-        if (leaveReasonChartInstance) leaveReasonChartInstance.destroy();
-        if(sortedReasons.length === 0) {
-            ctx.canvas.parentElement.innerHTML += `<p class="text-gray-500 text-center py-4">No 'Own Leave' reasons recorded.</p>`;
-            ctx.canvas.style.display = 'none';
-            return;
-        }
-        ctx.canvas.style.display = 'block';
-        
-        leaveReasonChartInstance = new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: sortedReasons.map(r => r[0]),
-                datasets: [{
-                    data: sortedReasons.map(r => r[1]),
-                    backgroundColor: ['rgba(54, 162, 235, 0.6)', 'rgba(255, 206, 86, 0.6)', 'rgba(75, 192, 192, 0.6)'],
-                    borderColor: ['#fff'],
-                    borderWidth: 2
-                }]
-            },
-            options: { 
-                responsive: true, 
-                maintainAspectRatio: false, 
-                animation: { duration: 0 },
-                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 15 } } }
-            }
-        });
-    };
+        // ===================================================================================
+        // VIRTUAL FILE: components/Auth.tsx
+        // ===================================================================================
+        const Auth = () => {
+            const [isLogin, setIsLogin] = useState(true);
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [name, setName] = useState('');
+            const [error, setError] = useState('');
+            const [loading, setLoading] = useState(false);
+            const { addToast } = useAppContext();
 
-    const renderLocationMap = (year, month) => {
-        const mapContainer = document.getElementById('location-map');
-        if (leafletMapInstance) {
-            leafletMapInstance.remove();
-            leafletMapInstance = null;
-        }
-
-        const monthPrefix = `${year}-${month}`;
-        const locations = new Map();
-        Object.keys(workData).filter(k => k.startsWith(monthPrefix)).forEach(key => {
-            const data = workData[key];
-            if (data.workLocation) {
-                const loc = data.workLocation.trim();
-                 if(!locations.has(loc)) locations.set(loc, []);
-                 locations.get(loc).push(`Day ${key.split('-')[2]}: ${data.vehicleNumber || 'N/A'}`);
-            }
-        });
-        
-        const placeholderCoords = { 'Office': [6.9271, 79.8612], 'Colombo': [6.9344, 79.8428], 'Kandy': [7.2906, 80.6337] };
-
-        if(locations.size === 0){
-             mapContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-gray-500">No location data for this month.</div>`;
-             return;
-        }
-
-        leafletMapInstance = L.map('location-map').setView([6.9271, 79.8612], 8);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap'
-        }).addTo(leafletMapInstance);
-
-        for(const [location, details] of locations.entries()){
-            if(placeholderCoords[location]) {
-                L.marker(placeholderCoords[location])
-                 .addTo(leafletMapInstance)
-                 .bindPopup(`<b>${location}</b><br>${details.join('<br>')}`);
-            }
-        }
-        setTimeout(() => leafletMapInstance?.invalidateSize(), 100);
-    };
-
-    const addDashboardEventListeners = () => {
-        document.getElementById('export-pdf-shortcut').addEventListener('click', () => {
-            showExportMonthPickerModal((year, month) => showExportPreview(year, month));
-        });
-        document.getElementById('export-excel-shortcut').addEventListener('click', () => {
-            showExportMonthPickerModal((year, month) => exportAsCSV(year, month));
-        });
-        document.getElementById('export-screenshot-shortcut').addEventListener('click', () => {
-            loadingSpinner.style.display = 'flex';
-            const activePage = document.getElementById('dashboard-page');
-            html2canvas(activePage, { scale: 2, useCORS: true, backgroundColor: document.documentElement.classList.contains('dark') ? '#111827' : '#f8f9fa' }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = `dashboard-screenshot-${currentDate.getFullYear()}-${currentDate.getMonth()+1}.png`;
-                link.href = canvas.toDataURL();
-                link.click();
-                loadingSpinner.style.display = 'none';
-            }).catch(err => {
-                console.error("Screenshot failed:", err);
-                loadingSpinner.style.display = 'none';
-            });
-        });
-    }
-
-    // DASHBOARD END
-
-    const exportAsCSV = (year, month) => {
-        const daysInMonth = getDaysInMonth(year, month);
-        const headers = ['Date', 'InTime', 'OutTime', 'MovementOut', 'MovementIn', 'TeamMembers', 'WorkLocation', 'VehicleNumber', 'KM', 'SpecialDay', 'LeaveStatus', 'LeaveReason', 'LeaveReasonDetails'];
-        let csvContent = "data:text/csv;charset=utf-8," + headers.join(',') + '\r\n';
-
-        for(let day = 1; day <= daysInMonth; day++) {
-            const dateKey = `${year}-${month}-${day}`;
-            const data = workData[dateKey] || {};
-            const row = [
-                `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`,
-                data.inTime || '', data.outTime || '', data.movementOut || '', data.movementIn || '',
-                `"${data.teamMembers || ''}"`, `"${data.workLocation || ''}"`,
-                data.vehicleNumber || '', data.km || '', data.specialDays || '',
-                data.leaveStatus || 'No', data.leaveReason || '', `"${data.leaveReasonText || data.customReasonDetails || ''}"`
-            ];
-            csvContent += row.join(',') + '\r\n';
-        }
-        
-        const link = document.createElement("a");
-        link.setAttribute("href", encodeURI(csvContent));
-        link.setAttribute("download", `Work_Report_${year}_${month + 1}.csv`);
-        link.click();
-    };
-
-    // MAIN RENDER/INITIALIZATION FUNCTIONS
-    const renderAll = () => {
-        renderHeader();
-        renderDays();
-        renderSummary();
-    };
-
-    const initializeAppForUser = () => {
-        renderAll();
-        scrollToToday();
-        loadingSpinner.style.opacity = '0';
-        setTimeout(() => { loadingSpinner.style.display = 'none'; }, 300);
-        appContainer.classList.add('fade-in');
-        appContainer.style.opacity = '1';
-    };
-
-    // -----------------------------------------------------------------------------
-    // SCRIPT EXECUTION & EVENT BINDING
-    // -----------------------------------------------------------------------------
-    
-    window.addEventListener('scroll', () => {
-        const isAtTop = window.scrollY < 100;
-        const isAtBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 100;
-        scrollUpButton.classList.toggle('hidden', isAtTop);
-        floatingDatePickerBtn.classList.toggle('hidden', isAtTop);
-        scrollDownButton.classList.toggle('hidden', isAtBottom);
-    });
-    scrollUpButton.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
-    scrollDownButton.addEventListener('click', () => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }));
-    floatingDatePickerBtn.addEventListener('click', showDatePickerModal);
-
-    // BACK BUTTON NAVIGATION START
-    backToDashboardBtn.addEventListener('click', () => showPage('dashboard-page'));
-    viewFullReportBtn.addEventListener('click', () => showPage('report-page'));
-    // BACK BUTTON NAVIGATION END
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyDzaAqT7NRAyQhTNDh8GsMKlTKNmttzIWo",
-      authDomain: "work-report-fe3da.firebaseapp.com",
-      projectId: "work-report-fe3da",
-      storageBucket: "work-report-fe3da.appspot.com",
-      messagingSenderId: "879340317679",
-      appId: "1:879340317679:web:a28e2d3906bca3e927a41a",
-      measurementId: "G-ZR8RGLKB77"
-    };
-
-    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-    let userRefUnsubscribe = null;
-
-    auth.onAuthStateChanged(async (currentUser) => {
-        loadingSpinner.style.display = 'flex';
-        loadingSpinner.style.opacity = '1';
-        if (userRefUnsubscribe) userRefUnsubscribe();
-        
-        if (currentUser) await currentUser.reload();
-
-        if (currentUser && currentUser.emailVerified) {
-            user = currentUser;
-            
-            renderMainNav(user);
-
-            const userRef = db.collection("users").doc(user.uid);
-            
-            if (localStorage.getItem('workData') || localStorage.getItem('reminders')) {
+            const handleGoogleSignIn = async () => {
+                setLoading(true);
+                setError('');
                 try {
-                    const localWorkData = JSON.parse(localStorage.getItem('workData') || '{}');
-                    const localReminders = JSON.parse(localStorage.getItem('reminders') || '[]');
-                    const doc = await userRef.get();
-                    const cloudData = doc.data() || {};
-                    const mergedWorkData = { ...(cloudData.workData || {}), ...localWorkData };
-                    const uniqueReminders = [...new Set([...(cloudData.reminders || []), ...localReminders].map(JSON.stringify))].map(JSON.parse);
-                    await userRef.set({ workData: mergedWorkData, reminders: uniqueReminders }, { merge: true });
-                    localStorage.removeItem('workData');
-                    localStorage.removeItem('reminders');
-                } catch (err) { console.error("Failed to sync local data:", err); }
-            }
-
-            userRefUnsubscribe = userRef.onSnapshot(doc => {
-                const data = doc.data();
-                workData = data?.workData || {};
-                reminders = data?.reminders || [];
-                showPage('report-page'); // Default to report page on data load/update
-                initializeAppForUser();
-            }, err => {
-                console.error("Firestore snapshot error: ", err);
-                initializeAppForUser();
-            });
-
-        } else {
-            if (currentUser && !currentUser.emailVerified) {
-                 showInfoModal('Verification Required', 'Please verify your email to continue.');
-            }
-            user = null;
-            workData = JSON.parse(localStorage.getItem('workData') || '{}');
-            reminders = JSON.parse(localStorage.getItem('reminders') || '[]');
+                    const result = await auth.signInWithPopup(GoogleAuthProvider);
+                    const user = result.user;
+                    // Check if user is new
+                    const userDoc = await db.collection('users').doc(user.uid).get();
+                    if (!userDoc.exists) {
+                        await db.collection('users').doc(user.uid).set({
+                            profile: {
+                                name: user.displayName,
+                                email: user.email,
+                                photoUrl: user.photoURL,
+                                currency: 'USD',
+                                preferences: { theme: 'auto' },
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            }
+                        });
+                        addToast('Welcome to Smart Shopping!', 'success');
+                    } else {
+                        addToast(`Welcome back, ${user.displayName}!`, 'success');
+                    }
+                } catch (err) {
+                    setError(err.message);
+                    addToast(err.message, 'error');
+                } finally {
+                    setLoading(false);
+                }
+            };
             
-            appWrapper.style.display = 'none';
-            signinPage.style.display = 'flex';
-            addSigninEventListeners();
-            loadingSpinner.style.opacity = '0';
-            setTimeout(() => { loadingSpinner.style.display = 'none'; }, 300);
-        }
-    });
-});
-</script>
-<script type="module">
-    import { GoogleGenAI } from "https://aistudiocdn.com/@google/genai@^0.14.0";
+            const handleEmailPassword = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                setError('');
+                try {
+                    if (isLogin) {
+                        await auth.signInWithEmailAndPassword(email, password);
+                        addToast('Logged in successfully!', 'success');
+                    } else {
+                        const result = await auth.createUserWithEmailAndPassword(email, password);
+                        await result.user.updateProfile({ displayName: name });
+                        await db.collection('users').doc(result.user.uid).set({
+                            profile: {
+                                name: name,
+                                email: email,
+                                photoUrl: '',
+                                currency: 'USD',
+                                preferences: { theme: 'auto' },
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            },
+                            items: [], scans: [], backups: []
+                        });
+                        addToast('Account created successfully!', 'success');
+                    }
+                } catch (err) {
+                    setError(err.message);
+                    addToast(err.message, 'error');
+                } finally {
+                    setLoading(false);
+                }
+            };
 
-    const apiKey = "AIzaSyCppq-j59GI9USv1Y0v2miQEn9y_7NfIWM";
-    const ai = new GoogleGenAI({ apiKey: apiKey });
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600">
+                    <div className="w-full max-w-md p-8 space-y-8 glass rounded-2xl shadow-2xl">
+                        <div>
+                            <h2 className="mt-6 text-center text-3xl font-extrabold text-white">
+                                {isLogin ? 'Sign in to your account' : 'Create a new account'}
+                            </h2>
+                        </div>
+                        <form className="mt-8 space-y-6" onSubmit={handleEmailPassword}>
+                            {!isLogin && (
+                                <input
+                                    type="text"
+                                    value={name}
+                                    onChange={e => setName(e.target.value)}
+                                    placeholder="Full Name"
+                                    required
+                                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                />
+                            )}
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={e => setEmail(e.target.value)}
+                                placeholder="Email address"
+                                required
+                                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            />
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                                placeholder="Password"
+                                required
+                                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            />
+                            
+                            {error && <p className="text-red-300 text-sm">{error}</p>}
+                            
+                            <div>
+                                <button type="submit" disabled={loading} className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50">
+                                    {loading ? <Spinner size="5" color="white" /> : (isLogin ? 'Sign In' : 'Sign Up')}
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <div className="relative">
+                          <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-gray-300/50"></div>
+                          </div>
+                          <div className="relative flex justify-center text-sm">
+                            <span className="px-2 bg-gray-600/50 text-white rounded-md">Or continue with</span>
+                          </div>
+                        </div>
 
-    window.generateProfessionalMessage = async (userInput) => {
-        try {
-            const prompt = `You are an expert in converting informal 'Tanglish' (a mix of Tamil and English) text into professional, formal English. Convert the following message into a polite and professional English sentence suitable for a workplace context. Do not add any explanations, preamble, or markdown formatting. Just provide the converted sentence as plain text. Tanglish message: "${userInput}"`;
+                        <div>
+                            <button onClick={handleGoogleSignIn} disabled={loading} className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50">
+                                <svg className="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 0C4.477 0 0 4.477 0 10c0 4.992 3.657 9.128 8.438 9.878v-6.987h-2.54V10h2.54V7.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V10h2.773l-.443 2.89h-2.33v6.988C16.343 19.128 20 14.992 20 10c0-5.523-4.477-10-10-10z" clipRule="evenodd"></path></svg>
+                                <span className="ml-2">Google</span>
+                            </button>
+                        </div>
+                        
+                        <div className="text-sm text-center">
+                            <a href="#" onClick={() => setIsLogin(!isLogin)} className="font-medium text-indigo-300 hover:text-indigo-200">
+                                {isLogin ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        // ===================================================================================
+        // VIRTUAL FILE: components/MainLayout.tsx
+        // ===================================================================================
+        
+        const Header = ({ onMenuClick }) => {
+            const { user, isOffline, syncQueue } = useAppContext();
+            
+            const handleSignOut = () => auth.signOut();
+            
+            return (
+                <header className="sticky top-0 z-30 w-full glass shadow-md">
+                    <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex items-center justify-between h-16">
+                            <div className="flex items-center">
+                                <button onClick={onMenuClick} className="p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-500/20 md:hidden">
+                                    <Icon name="menu" />
+                                </button>
+                                <div className="hidden md:block text-2xl font-bold text-gray-800 dark:text-white ml-4">
+                                    Smart Shopping
+                                </div>
+                            </div>
+                            <div className="flex items-center space-x-4">
+                                {isOffline && <div className="text-red-500 font-semibold">Offline</div>}
+                                {syncQueue.length > 0 && <div className="text-yellow-500 font-semibold animate-pulse">{syncQueue.length} pending</div>}
+                                
+                                <div className="relative group">
+                                    <img src={user?.photoURL || `https://ui-avatars.com/api/?name=${user?.displayName}&background=random`} alt="User Avatar" className="w-10 h-10 rounded-full cursor-pointer" />
+                                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-20 hidden group-hover:block">
+                                        <div className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 border-b dark:border-gray-600">
+                                            Signed in as <br/><strong>{user?.displayName}</strong>
+                                        </div>
+                                        <a href="#" onClick={handleSignOut} className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                            <Icon name="logout" className="w-5 h-5 mr-2" />
+                                            Sign Out
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+            );
+        };
+        
+        const Sidebar = ({ currentPage, onNavigate }) => {
+            const { isSidebarOpen, setSidebarOpen } = useAppContext();
+            const navItems = [
+              { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
+              { id: 'list', label: 'Shopping List', icon: 'list' },
+              { id: 'scan', label: 'Scanner', icon: 'scan' },
+              { id: 'analytics', label: 'Analytics', icon: 'analytics' },
+              { id: 'backup', label: 'Backups', icon: 'backup' },
+              { id: 'settings', label: 'Settings', icon: 'settings' },
+            ];
+            
+            return (
+                <aside className={`fixed top-0 left-0 z-40 w-64 h-screen pt-20 glass md:translate-x-0 ${isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
+                    <div className="h-full px-3 pb-4 overflow-y-auto">
+                        <ul className="space-y-2 font-medium">
+                           {navItems.map(item => (
+                                <li key={item.id}>
+                                    <a href="#" onClick={() => { onNavigate(item.id); setSidebarOpen(false); }}
+                                       className={`flex items-center p-2 rounded-lg hover:bg-gray-500/20 ${currentPage === item.id ? 'bg-indigo-500/30 text-indigo-700 dark:text-indigo-300' : ''}`}>
+                                        <Icon name={item.icon} className="w-6 h-6"/>
+                                        <span className="ml-3">{item.label}</span>
+                                    </a>
+                                </li>
+                           ))}
+                        </ul>
+                    </div>
+                </aside>
+            );
+        };
 
-            const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: prompt,
-            });
+        const MainLayout = ({ children }) => {
+            const [currentPage, setCurrentPage] = useState('dashboard');
+            const { isSidebarOpen, setSidebarOpen } = useAppContext();
+            
+            const renderPage = () => {
+                switch(currentPage) {
+                    case 'dashboard': return <Dashboard />;
+                    // TODO: Implement other pages
+                    // case 'list': return <ShoppingList />;
+                    // case 'scan': return <Scanner />;
+                    // case 'analytics': return <Analytics />;
+                    // case 'backup': return <Backups />;
+                    // case 'settings': return <Settings />;
+                    default: return <Dashboard />;
+                }
+            };
+            
+            return (
+                <div className="flex h-screen">
+                    <Sidebar currentPage={currentPage} onNavigate={setCurrentPage} />
+                    <div className="flex-1 flex flex-col overflow-hidden">
+                        <Header onMenuClick={() => setSidebarOpen(!isSidebarOpen)} />
+                        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900">
+                            <div className="container mx-auto px-6 py-8">
+                                {children(currentPage)}
+                            </div>
+                        </main>
+                    </div>
+                </div>
+            );
+        };
 
-            return response.text.trim();
-        } catch (error) {
-            console.error("Error calling Gemini API:", error);
-            if (error.toString().includes('API key not valid')) {
-                return "The provided API key is not valid. Please check the key and try again.";
+        // ===================================================================================
+        // VIRTUAL FILE: pages/Dashboard.tsx
+        // ===================================================================================
+        const Dashboard = () => {
+            const { user } = useAppContext();
+            // In a real app, these values would come from Firestore.
+            const stats = {
+                activeItems: 12,
+                completedItems: 58,
+                monthlySpend: 256.78,
+                currency: 'USD',
+            };
+            
+            return (
+                <div>
+                    <h3 className="text-3xl font-medium">Welcome back, {user?.displayName}!</h3>
+                    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div className="glass p-5 rounded-lg">
+                            <h4 className="text-lg font-semibold">Active Items</h4>
+                            <p className="text-3xl font-bold mt-2">{stats.activeItems}</p>
+                        </div>
+                         <div className="glass p-5 rounded-lg">
+                            <h4 className="text-lg font-semibold">Completed Items</h4>
+                            <p className="text-3xl font-bold mt-2">{stats.completedItems}</p>
+                        </div>
+                         <div className="glass p-5 rounded-lg">
+                            <h4 className="text-lg font-semibold">This Month's Spend</h4>
+                            <p className="text-3xl font-bold mt-2">{stats.currency} {stats.monthlySpend}</p>
+                        </div>
+                         <div className="glass p-5 rounded-lg">
+                            <h4 className="text-lg font-semibold">Quick Actions</h4>
+                            <div className="mt-2 space-x-2">
+                                <button className="bg-indigo-500 text-white px-3 py-1 rounded-md text-sm">New Item</button>
+                                <button className="bg-green-500 text-white px-3 py-1 rounded-md text-sm">Scan Receipt</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="glass p-5 rounded-lg">
+                            <h4 className="text-lg font-semibold mb-4">Recent Items</h4>
+                             {/* Mock recent items list */}
+                            <ul>
+                                <li className="flex justify-between py-2 border-b border-gray-500/20"><span>Milk</span><span>$3.50</span></li>
+                                <li className="flex justify-between py-2 border-b border-gray-500/20"><span>Bread</span><span>$2.20</span></li>
+                                <li className="flex justify-between py-2 border-b border-gray-500/20"><span>Eggs</span><span>$4.00</span></li>
+                            </ul>
+                        </div>
+                        <div className="glass p-5 rounded-lg">
+                             <h4 className="text-lg font-semibold mb-4">Spending Overview</h4>
+                             <div className="h-64">{/* Placeholder for a chart */}
+                                <p className="text-center mt-20">Chart will be displayed here.</p>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        // Placeholder pages
+        const ShoppingList = () => <div className="glass p-6 rounded-lg"> <h2 className="text-2xl font-bold">Shopping List</h2> <p>This feature is under construction.</p> </div>;
+        const Scanner = () => <div className="glass p-6 rounded-lg"> <h2 className="text-2xl font-bold">Scanner</h2> <p>This feature is under construction.</p> </div>;
+        const Analytics = () => <div className="glass p-6 rounded-lg"> <h2 className="text-2xl font-bold">Analytics</h2> <p>This feature is under construction.</p> </div>;
+        const Backups = () => <div className="glass p-6 rounded-lg"> <h2 className="text-2xl font-bold">Backups</h2> <p>This feature is under construction.</p> </div>;
+        const Settings = () => <div className="glass p-6 rounded-lg"> <h2 className="text-2xl font-bold">Settings</h2> <p>This feature is under construction.</p> </div>;
+
+
+        // ===================================================================================
+        // VIRTUAL FILE: App.tsx (Root Component)
+        // ===================================================================================
+        const App = () => {
+            const { user, setUser, loading, setLoading, addToast, setTheme } = useAppContext();
+
+            useEffect(() => {
+                const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+                    if (firebaseUser) {
+                        const userDocRef = db.collection('users').doc(firebaseUser.uid);
+                        const userDoc = await userDocRef.get();
+                        
+                        if (userDoc.exists) {
+                            const profile = userDoc.data().profile;
+                            setUser({
+                                uid: firebaseUser.uid,
+                                ...firebaseUser,
+                                ...profile
+                            });
+                            setTheme(profile.preferences?.theme || 'auto');
+                        } else {
+                            // This might happen if user exists in Auth but not Firestore
+                            addToast("User profile not found. Please sign up again.", "error");
+                            auth.signOut();
+                        }
+                    } else {
+                        setUser(null);
+                    }
+                    setLoading(false);
+                });
+                return () => unsubscribe();
+            }, []);
+
+            if (loading) {
+                return <FullPageLoader />;
             }
-            return "Sorry, there was an error processing your request. Please try again.";
-        }
-    };
-</script>
+            
+            const renderPage = (page) => {
+                switch(page) {
+                    case 'dashboard': return <Dashboard />;
+                    case 'list': return <ShoppingList />;
+                    case 'scan': return <Scanner />;
+                    case 'analytics': return <Analytics />;
+                    case 'backup': return <Backups />;
+                    case 'settings': return <Settings />;
+                    default: return <Dashboard />;
+                }
+            };
+            
+            return (
+                <>
+                  <ToastContainer />
+                  {user ? (
+                      <MainLayout>
+                        {currentPage => renderPage(currentPage)}
+                      </MainLayout>
+                  ) : (
+                      <Auth />
+                  )}
+                </>
+            );
+        };
+
+        // --- Final Render ---
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(
+          <AppProvider>
+            <App />
+          </AppProvider>
+        );
+
+    </script>
 </body>
 </html>
